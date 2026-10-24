@@ -13,211 +13,220 @@
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#E3E6EC; --panel:#F6F7F9; --panel2:#ECEEF2; --ink:#1B2130; --muted:#5D6678; --line:#CBD1DB;
-  --accent:#E39A2D; --accent-ink:#1B1406; --sel:#FFF1D9; --chk1:#D3D6DD; --chk2:#EEF0F3;
+  --chrome:#A9B3D1;--chrome2:#C4CBE2;--win:#EDEDF2;--win2:#E0E2EB;--ink:#1D1F2A;--muted:#596074;--line:#2B2E3B;--soft:#BCC1D0;
+  --accent:#E8A33B;--accent-ink:#1d1405;--sel:#FCE3B8;--work:#6A6A6A;--strip:#F1EEEE;
+  --chk1:#D3D6DD;--chk2:#EEF0F3;
   --checker:conic-gradient(var(--chk1) 25%,var(--chk2) 0 50%,var(--chk1) 0 75%,var(--chk2) 0) 0 0/8px 8px;
+  --font:"Pixelify Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   color-scheme:light;
 }
-@media (prefers-color-scheme:dark){
-  :root{--bg:#14181F;--panel:#1E2330;--panel2:#262C3A;--ink:#E5E8EE;--muted:#8C95A7;--line:#343C4D;
-  --accent:#F2B84B;--accent-ink:#1B1406;--sel:#3A321F;--chk1:#3A3F4B;--chk2:#464C59;color-scheme:dark}
-}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
-body{display:grid;height:100dvh;overflow:hidden;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto 1fr auto;
-  grid-template-areas:"top top top" "opts opts opts" "tools stage side" "time time time";
+html,body{margin:0;height:100%;background:var(--chrome);color:var(--ink);font:14px/1.25 var(--font);overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+body{display:grid;height:100dvh;overflow:hidden;grid-template-rows:auto 1fr auto;
   padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
-button{font:inherit;color:inherit}
-.btn{height:40px;min-width:40px;padding:0 11px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:9px;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;touch-action:manipulation;white-space:nowrap;flex:none}
-.btn:focus-visible,.field:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.btn:active{transform:translateY(1px)}
+button,select,input,textarea{font-family:var(--font)}
+button{font-size:inherit;color:inherit}
+.btn{height:36px;min-width:36px;padding:0 10px;border:1px solid var(--line);background:var(--win);color:var(--ink);border-radius:3px;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;touch-action:manipulation;white-space:nowrap;flex:none;box-shadow:inset -1px -2px 0 rgba(0,0,0,.13)}
+.btn:focus-visible,.field:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn:active{transform:translateY(1px);box-shadow:none}
 .btn:disabled{opacity:.38;cursor:default}
-.btn[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.btn.small{height:32px;min-width:32px;padding:0 9px;font-size:13px;border-radius:7px}
-.btn.icon{padding:0;width:40px}
-.btn.small.icon{width:32px}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
-svg.px{width:20px;height:20px;shape-rendering:crispEdges;fill:currentColor;display:block}
-.top{grid-area:top;display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--panel);border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
-.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;margin-right:6px;white-space:nowrap}
-.mark{width:14px;height:14px;border-radius:2px;background:conic-gradient(var(--accent) 25%,var(--ink) 0 50%,var(--accent) 0 75%,var(--ink) 0) 0 0/14px 14px}
-.sep{width:1px;height:24px;background:var(--line);margin:0 4px;flex:none}
+.btn[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);box-shadow:inset 1px 2px 0 rgba(0,0,0,.18)}
+.btn.small{height:30px;min-width:30px;padding:0 8px;font-size:13px}
+.btn.icon{padding:0;width:36px}
+.btn.small.icon{width:30px}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+svg.px{width:18px;height:18px;shape-rendering:crispEdges;fill:currentColor;display:block}
+.top{display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--chrome);border-bottom:2px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.brand{font-size:13px;color:var(--ink);opacity:.75;white-space:nowrap;padding:0 4px}
+.sep{width:2px;height:22px;background:var(--line);opacity:.35;margin:0 3px;flex:none}
 .grow{flex:1}
-.meta{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;font-size:13px;display:flex;gap:12px}
-.sizebtn{font-variant-numeric:tabular-nums}
-#sideBtn{display:none}
-.opts{grid-area:opts;display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--panel2);border-bottom:1px solid var(--line);min-height:46px;overflow-x:auto;white-space:nowrap;scrollbar-width:none}
-.opt-title{font-weight:600;margin-right:4px}
-.grp{display:inline-flex;align-items:center;gap:4px}
 .lbl{color:var(--muted);font-size:13px}
 .val{min-width:22px;text-align:center;font-variant-numeric:tabular-nums}
-.hint{color:var(--muted);font-size:13px;margin:0;white-space:normal}
-.opts .hint{white-space:nowrap}
-.tools{grid-area:tools;display:grid;grid-template-columns:46px;grid-auto-rows:46px;align-content:start;gap:5px;padding:8px;background:var(--panel);border-right:1px solid var(--line);min-height:0;overflow-y:auto}
-@media (max-height:1000px){.tools{grid-template-columns:repeat(2,46px)}}
-.tool{width:46px;height:46px;padding:0;border-radius:11px}
-.tool svg.px{width:22px;height:22px}
-.stage{grid-area:stage;position:relative;overflow:hidden;touch-action:none}
+.hint{color:var(--muted);font-size:12px;margin:0;line-height:1.35}
+.stage{position:relative;overflow:hidden;touch-action:none;background:var(--work)}
 #view{position:absolute;inset:0;display:block;touch-action:none}
-.side{grid-area:side;width:276px;background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:12px}
-.side-head{display:flex;align-items:center;justify-content:space-between;font-size:15px;gap:8px}
-#sideClose{display:none}
-.colors{display:flex;gap:12px;align-items:flex-start}
-.swatches{position:relative;width:66px;height:66px;flex:none}
-.sw{position:absolute;width:44px;height:44px;border-radius:7px;border:2px solid var(--panel);box-shadow:0 0 0 1px var(--line);padding:0;cursor:pointer}
+/* floating windows */
+.win{position:absolute;z-index:10;background:var(--win);border:2px solid var(--line);border-radius:3px;box-shadow:3px 3px 0 rgba(0,0,0,.28);display:flex;flex-direction:column;max-height:calc(100% - 12px)}
+.win[hidden]{display:none}
+.win-bar,.ref-bar{display:flex;align-items:center;gap:4px;height:32px;padding:0 3px 0 6px;background:var(--chrome2);border-bottom:2px solid var(--line);cursor:grab;touch-action:none;font-size:13px;flex:none}
+.win.collapsed .win-bar{border-bottom:0}
+.win.collapsed .win-body{display:none}
+.win-bar span,.ref-bar span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grip{width:12px;height:10px;flex:none;background:radial-gradient(circle,var(--line) 1.2px,transparent 1.4px) 0 0/4px 4px;opacity:.85}
+.wbtn{height:24px;min-width:24px;padding:0 5px;border:1px solid var(--line);background:var(--win);border-radius:2px;cursor:pointer;font-size:12px;display:inline-flex;align-items:center;justify-content:center;touch-action:manipulation}
+.wbtn svg.px{width:14px;height:14px}
+.win-body{padding:8px;overflow:auto;min-height:0;display:flex;flex-direction:column;gap:8px}
+.tools-body{flex-direction:row;align-items:flex-start;gap:6px;padding:6px}
+.tools{display:grid;grid-template-columns:40px;grid-auto-rows:40px;gap:4px;flex:none}
+.tool{width:40px;height:40px;padding:0}
+.tool svg.px{width:22px;height:22px}
+.opts{display:flex;flex-direction:column;gap:6px;width:150px;border-left:2px solid var(--soft);padding-left:6px;align-self:stretch}
+.opt-title{font-weight:600;font-size:14px}
+.opts .grp{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.opts .grp .lbl{width:100%}
+.opts>.btn{width:100%}
+#winColor{width:248px}
+#winPal{width:236px}
+#winLayers{width:266px}
+.colors{display:flex;gap:10px;align-items:flex-start}
+.swatches{position:relative;width:58px;height:58px;flex:none}
+.sw{position:absolute;width:38px;height:38px;border-radius:2px;border:2px solid var(--line);padding:0;cursor:pointer}
 .sw.pri{left:0;top:0;z-index:2}
 .sw.sec{right:0;bottom:0}
-.colmeta{display:flex;flex-wrap:wrap;gap:6px;flex:1}
-.field{height:32px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font:inherit;padding:0 8px;-webkit-user-select:text;user-select:text;min-width:0}
-textarea.field{height:auto;padding:8px;resize:vertical}
+.colmeta{display:flex;flex-wrap:wrap;gap:5px;flex:1}
+.field{height:30px;border:1px solid var(--line);border-radius:2px;background:#fff;color:var(--ink);font-size:14px;padding:0 7px;-webkit-user-select:text;user-select:text;min-width:0}
+textarea.field{height:auto;padding:7px;resize:vertical}
 #hex{width:100%;font-variant-numeric:tabular-nums}
-.picker{display:flex;flex-direction:column;gap:8px}
-#sv{width:100%;height:150px;border-radius:8px;touch-action:none;display:block;cursor:crosshair}
-#hue{width:100%;height:24px;border-radius:6px;touch-action:none;display:block;cursor:pointer}
-.recent{display:flex;gap:5px;flex-wrap:wrap;min-height:24px}
-.recent .pal{width:24px;height:24px;aspect-ratio:auto}
-.palette{display:grid;grid-template-columns:repeat(auto-fill,minmax(26px,1fr));gap:5px}
-.pal{aspect-ratio:1;border-radius:5px;border:1px solid var(--line);padding:0;cursor:pointer;touch-action:manipulation}
-.pal.on{outline:2px solid var(--accent);outline-offset:1px}
-.row-btns{display:flex;flex-wrap:wrap;gap:6px}
-.layers{display:flex;flex-direction:column;gap:4px}
-.layer{display:flex;align-items:center;gap:4px;padding:3px;border-radius:9px;border:1px solid transparent}
-.layer.on{background:var(--sel);border-color:var(--accent)}
+.picker{display:flex;flex-direction:column;gap:6px}
+#sv{width:100%;height:140px;border:2px solid var(--line);touch-action:none;display:block;cursor:crosshair}
+#hue{width:100%;height:22px;border:2px solid var(--line);touch-action:none;display:block;cursor:pointer}
+.sub{font-size:13px;color:var(--muted)}
+.recent{display:flex;gap:4px;flex-wrap:wrap;min-height:22px}
+.recent .pal{width:22px;height:22px;aspect-ratio:auto}
+.palette{display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
+.pal{aspect-ratio:1;border-radius:1px;border:1px solid var(--line);padding:0;cursor:pointer;touch-action:manipulation}
+.pal.on{outline:2px solid var(--accent);outline-offset:1px;position:relative;z-index:1}
+.row-btns{display:flex;flex-wrap:wrap;gap:4px}
+.layers{display:flex;flex-direction:column;gap:3px;max-height:240px;overflow:auto}
+.layer{display:flex;align-items:center;gap:3px;padding:2px;border-radius:2px;border:1px solid transparent}
+.layer.on{background:var(--sel);border-color:var(--line)}
 .layer .btn[aria-pressed=false] svg{opacity:.28}
-.lname{flex:1;height:36px;text-align:left;border:0;background:transparent;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;padding:0 6px;touch-action:manipulation}
+.lname{flex:1;height:32px;text-align:left;border:0;background:transparent;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;padding:0 6px;touch-action:manipulation}
 .op{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
 .op input{flex:1;accent-color:var(--accent)}
 .op select{flex:1}
-.time{grid-area:time;background:var(--panel);border-top:1px solid var(--line);padding:6px 10px;display:flex;flex-direction:column;gap:6px;min-width:0}
-.time-row,.tags{display:flex;align-items:center;gap:6px;overflow-x:auto;white-space:nowrap;scrollbar-width:none}
-.time-row label{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
-.chip i{width:10px;height:10px;border-radius:3px;display:inline-block;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
-.chip .lbl{color:inherit;opacity:.7}
-.num{width:76px}
-.strip{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 4px;min-height:82px}
-.frame{position:relative;flex:none;width:66px;height:78px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:var(--muted);font-size:12px;padding:4px;cursor:pointer;touch-action:manipulation;overflow:hidden}
+.prev-body{padding:8px;display:flex;justify-content:center;align-items:center;background:var(--win2)}
+.prev-body canvas{image-rendering:pixelated;background:var(--checker);display:block;border:1px solid var(--line)}
+/* timeline */
+.time{background:var(--chrome);border-top:2px solid var(--line);display:flex;flex-direction:column;min-width:0}
+.time-row{display:flex;align-items:center;gap:5px;padding:5px 8px;overflow-x:auto;white-space:nowrap;scrollbar-width:none}
+.time-row label{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--ink)}
+.grp2{display:inline-flex;gap:0}
+.grp2 .btn{border-radius:0;margin-left:-1px}
+.grp2 .btn:first-child{border-radius:3px 0 0 3px;margin-left:0}
+.grp2 .btn:last-child{border-radius:0 3px 3px 0}
+.num{width:70px}
+.frames-row{display:flex;align-items:center;gap:5px;padding:5px 8px;background:var(--strip);border-top:1px solid var(--line);border-bottom:1px solid var(--line);min-width:0}
+#tagSel{width:170px;height:30px;flex:none}
+.strip{display:flex;gap:4px;overflow-x:auto;padding:2px;flex:1;min-width:0;scrollbar-width:thin}
+.frame{position:relative;flex:none;width:46px;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1px solid var(--line);border-radius:2px;background:#fff;color:var(--muted);font-size:11px;padding:3px;cursor:pointer;touch-action:manipulation;overflow:hidden}
 .frame canvas{image-rendering:pixelated;background:var(--checker)}
-.frame.on{border:2px solid var(--accent);color:var(--ink);font-weight:600}
-.tagbar{position:absolute;left:0;right:0;top:0;height:5px}
-.modal{position:fixed;inset:0;background:rgba(10,12,18,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.frame.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.tagbar{position:absolute;left:0;right:0;top:0;height:4px}
+.status{display:flex;align-items:center;gap:12px;padding:3px 8px;font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;overflow-x:auto;scrollbar-width:none}
+.sbtn{border:0;background:transparent;padding:2px 4px;cursor:pointer;border-radius:2px;font-size:13px}
+.sbtn:active{background:var(--chrome2)}
+.zoomgrp{display:inline-flex;align-items:center}
+/* dialogs */
+.modal{position:fixed;inset:0;background:rgba(20,22,32,.4);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
 .modal[hidden]{display:none}
-.sheet{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:18px;width:min(460px,100%);max-height:90vh;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.sheet{background:var(--win);color:var(--ink);border:2px solid var(--line);border-radius:3px;box-shadow:4px 4px 0 rgba(0,0,0,.3);padding:16px;width:min(460px,100%);max-height:90vh;overflow:auto;display:flex;flex-direction:column;gap:11px}
 .sheet h2{margin:0;font-size:18px}
 .sheet h3{margin:4px 0 0;font-size:14px;color:var(--muted);font-weight:600}
 .sheet label{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .sheet label.check{justify-content:flex-start}
 .sheet label input[type=range]{flex:1;accent-color:var(--accent)}
 .sheet p{margin:0;line-height:1.45}
-.menu{display:flex;flex-direction:column;gap:6px}
+.menu{display:flex;flex-direction:column;gap:5px}
 .menu .btn{justify-content:flex-start}
 .actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
-.seg,.presets{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.seg,.presets{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
 .seg [data-c][aria-pressed=true]{outline:3px solid var(--ink);outline-offset:2px}
 .wh{display:flex;gap:12px;flex-wrap:wrap}
-.preview{display:flex;flex-direction:column;gap:10px;align-items:center;padding-top:4px;border-top:1px solid var(--line)}
-.preview img,.txtprev{max-width:100%;max-height:260px;image-rendering:pixelated;background:var(--checker);border-radius:6px;-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto}
+.preview{display:flex;flex-direction:column;gap:10px;align-items:center;padding-top:4px;border-top:1px solid var(--soft)}
+.preview img,.txtprev{max-width:100%;max-height:260px;image-rendering:pixelated;background:var(--checker);-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto}
 .txtprev{align-self:flex-start;min-height:20px}
 .pair{display:flex;align-items:center;gap:10px}
-.pair i{width:36px;height:36px;border-radius:7px;box-shadow:0 0 0 1px var(--line);display:inline-block}
+.pair i{width:34px;height:34px;border:2px solid var(--line);display:inline-block}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0;font-size:14px}
 .keys dt{font-weight:600;white-space:nowrap}
 .keys dd{margin:0;color:var(--muted)}
-.toast{position:fixed;left:50%;bottom:calc(150px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:10px 14px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:60;max-width:90vw;text-align:center}
+.toast{position:fixed;left:50%;bottom:calc(140px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--line);color:#fff;padding:9px 13px;border-radius:3px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:60;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
-.loupe{position:fixed;width:72px;height:72px;border-radius:50%;pointer-events:none;z-index:70;box-shadow:0 0 0 3px #fff,0 0 0 4px rgba(0,0,0,.45),0 6px 16px rgba(0,0,0,.35);overflow:hidden;display:none}
+.loupe{position:fixed;width:72px;height:72px;border-radius:50%;pointer-events:none;z-index:70;box-shadow:0 0 0 3px #fff,0 0 0 5px var(--line),0 6px 16px rgba(0,0,0,.35);overflow:hidden;display:none}
 .loupe i{position:absolute;left:0;right:0;height:50%}
 .loupe .now{top:0}.loupe .was{bottom:0}
-.ref{position:absolute;z-index:5;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;flex-direction:column;overflow:hidden;min-width:190px}
-.ref-bar{display:flex;align-items:center;gap:4px;padding:4px 4px 4px 10px;cursor:grab;touch-action:none;font-size:13px;color:var(--muted);flex:none}
-.ref-bar span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ref{position:absolute;z-index:5;background:var(--win);border:2px solid var(--line);border-radius:3px;box-shadow:3px 3px 0 rgba(0,0,0,.28);display:flex;flex-direction:column;overflow:hidden;min-width:190px}
 .ref-body{position:relative;flex:1;overflow:hidden;touch-action:none;background:var(--checker)}
 .ref-body img{position:absolute;left:0;top:0;transform-origin:0 0;max-width:none;pointer-events:none}
-.ref.min .ref-body,.ref.min .ref-grip,.ref.min .prev-body{display:none}
-.ref-grip{position:absolute;right:0;bottom:0;width:28px;height:28px;touch-action:none;cursor:nwse-resize;background:linear-gradient(135deg,transparent 52%,var(--muted) 52% 58%,transparent 58% 70%,var(--muted) 70% 76%,transparent 76%)}
-.prev{z-index:6}
-.prev-body{padding:10px;display:flex;justify-content:center;align-items:center;background:var(--panel2)}
-.prev-body canvas{image-rendering:pixelated;background:var(--checker);display:block}
+.ref.min .ref-body,.ref.min .ref-grip{display:none}
+.ref.min .ref-bar{border-bottom:0}
+.ref-grip{position:absolute;right:0;bottom:0;width:28px;height:28px;touch-action:none;cursor:nwse-resize;background:linear-gradient(135deg,transparent 52%,var(--line) 52% 58%,transparent 58% 70%,var(--line) 70% 76%,transparent 76%)}
 .anchor{display:grid;grid-template-columns:repeat(3,36px);gap:4px}
 .anchor .btn{width:36px;height:36px;min-width:0;padding:0}
 .tabs{display:flex;gap:6px;flex-wrap:wrap}
-@media (max-width:860px){
-  body{grid-template-columns:auto 1fr;grid-template-areas:"top top" "opts opts" "tools stage" "time time"}
-  .side{position:fixed;top:0;right:0;bottom:0;z-index:40;transform:translateX(105%);transition:transform .2s;box-shadow:-8px 0 24px rgba(0,0,0,.25);padding-top:calc(12px + env(safe-area-inset-top));padding-bottom:calc(12px + env(safe-area-inset-bottom))}
-  body.side-open .side{transform:none}
-  #sideClose,#sideBtn{display:inline-flex}
-}
-@media (max-width:560px){
-  .tool{width:40px;height:40px}
-  .tools{grid-template-columns:repeat(2,40px);grid-auto-rows:40px}
-  .brand .name,.meta{display:none}
-}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 <header class="top">
-  <span class="brand"><i class="mark"></i><span class="name">Пиксельня</span></span>
   <button class="btn" id="fileBtn">Файл</button>
   <button class="btn" id="editBtn">Правка</button>
   <button class="btn" id="viewBtn">Вид</button>
   <button class="btn" id="exportBtn">Экспорт</button>
-  <button class="btn" id="sideBtn">Цвета и слои</button>
-  <span class="sep"></span>
-  <button class="btn icon" id="undoBtn" aria-label="Отменить" title="Отменить (⌘Z)" data-icon="undo"></button>
-  <button class="btn icon" id="redoBtn" aria-label="Повторить" title="Повторить (⇧⌘Z)" data-icon="redo"></button>
-  <span class="sep"></span>
-  <button class="btn icon" id="zoomOut" aria-label="Отдалить">−</button>
-  <button class="btn" id="zoomLbl" title="Вписать в экран">100%</button>
-  <button class="btn icon" id="zoomIn" aria-label="Приблизить">+</button>
-  <span class="sep"></span>
-  <button class="btn sizebtn" id="sizeBtn" title="Размер холста">32×32</button>
   <button class="btn" id="refBtn">Референс</button>
   <span class="grow"></span>
-  <span class="meta"><span id="metaPos"></span></span>
+  <span class="brand">Пиксельня</span>
 </header>
 
-<div class="opts" id="opts"></div>
-<nav class="tools" id="tools" aria-label="Инструменты"></nav>
-<main class="stage" id="stage"><canvas id="view"></canvas></main>
-
-<aside class="side" id="side">
-  <div class="side-head"><b>Цвет</b><button class="btn small" id="sideClose">Закрыть</button></div>
-  <div class="colors">
-    <div class="swatches">
-      <button class="sw sec" id="swSec" title="Второй цвет. Нажми, чтобы поменять местами" aria-label="Второй цвет"></button>
-      <button class="sw pri" id="swPri" title="Основной цвет" aria-label="Основной цвет"></button>
+<main class="stage" id="stage"><canvas id="view"></canvas>
+  <section class="win" id="winTools" aria-label="Инструменты">
+    <div class="win-bar"><i class="grip"></i><span>Инструменты</span><button class="wbtn" data-collapse aria-label="Свернуть">–</button></div>
+    <div class="win-body tools-body"><nav class="tools" id="tools" aria-label="Инструменты"></nav><div class="opts" id="opts"></div></div>
+  </section>
+  <section class="win" id="winPal" aria-label="Палитра">
+    <div class="win-bar"><i class="grip"></i><span>Палитра</span><button class="wbtn" data-collapse aria-label="Свернуть">–</button></div>
+    <div class="win-body"><div class="palette" id="palette"></div><p class="hint">Нажми на цвет, чтобы выбрать. Удержи, чтобы убрать.</p><div class="sub">Недавние</div><div class="recent" id="recent"></div></div>
+  </section>
+  <section class="win" id="winPrev" aria-label="Предпросмотр">
+    <div class="win-bar"><i class="grip"></i><span>Предпросмотр</span><button class="wbtn" data-a="sc" title="Масштаб">×2</button><button class="wbtn" data-a="play" aria-label="Проиграть анимацию"></button><button class="wbtn" data-collapse aria-label="Свернуть">–</button></div>
+    <div class="win-body prev-body"><canvas id="prevCv"></canvas></div>
+  </section>
+  <section class="win" id="winColor" aria-label="Выбор цвета">
+    <div class="win-bar"><i class="grip"></i><span>Выбор цвета</span><button class="wbtn" data-collapse aria-label="Свернуть">–</button></div>
+    <div class="win-body">
+      <div class="picker"><canvas id="sv" aria-label="Насыщенность и яркость"></canvas><canvas id="hue" aria-label="Оттенок"></canvas></div>
+      <div class="colors">
+        <div class="swatches">
+          <button class="sw sec" id="swSec" title="Второй цвет. Нажми, чтобы поменять местами" aria-label="Второй цвет"></button>
+          <button class="sw pri" id="swPri" title="Основной цвет" aria-label="Основной цвет"></button>
+        </div>
+        <div class="colmeta">
+          <input id="hex" class="field" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Код цвета">
+          <button class="btn small" id="swapBtn" title="X">Поменять</button>
+          <button class="btn small" id="addSw">В палитру</button>
+        </div>
+      </div>
     </div>
-    <div class="colmeta">
-      <input id="hex" class="field" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Код цвета">
-      <button class="btn small" id="swapBtn" title="X">Поменять</button>
-      <button class="btn small" id="addSw">В палитру</button>
+  </section>
+  <section class="win" id="winLayers" aria-label="Слои">
+    <div class="win-bar"><i class="grip"></i><span>Слои</span><button class="wbtn" data-collapse aria-label="Свернуть">–</button></div>
+    <div class="win-body">
+      <div class="row-btns">
+        <button class="btn small" id="lAdd">Новый</button>
+        <button class="btn small" id="lDup">Копия</button>
+        <button class="btn small" id="lDel">Удалить</button>
+        <button class="btn small icon" id="lUp" aria-label="Слой выше">↑</button>
+        <button class="btn small icon" id="lDown" aria-label="Слой ниже">↓</button>
+        <button class="btn small" id="lMerge">Слить вниз</button>
+      </div>
+      <div class="layers" id="layers"></div>
+      <label class="op">Непрозр. <input type="range" id="opacity" min="0" max="100"><span id="opVal"></span></label>
+      <label class="op">Смешивание <select class="field" id="blend"></select></label>
+      <p class="hint">Замок — рисовать только по нарисованному. Тап по выбранному слою — переименовать.</p>
     </div>
-  </div>
-  <div class="picker"><canvas id="sv" aria-label="Насыщенность и яркость"></canvas><canvas id="hue" aria-label="Оттенок"></canvas></div>
-  <div class="side-head"><b>Недавние</b></div>
-  <div class="recent" id="recent"></div>
-  <div class="side-head"><b>Палитра</b></div>
-  <div class="palette" id="palette"></div>
-  <p class="hint">Нажми на цвет, чтобы выбрать. Удержи, чтобы убрать из палитры.</p>
-  <div class="side-head"><b>Слои</b></div>
-  <div class="row-btns">
-    <button class="btn small" id="lAdd">Новый</button>
-    <button class="btn small" id="lDup">Копия</button>
-    <button class="btn small" id="lDel">Удалить</button>
-    <button class="btn small icon" id="lUp" aria-label="Слой выше">↑</button>
-    <button class="btn small icon" id="lDown" aria-label="Слой ниже">↓</button>
-    <button class="btn small" id="lMerge">Слить вниз</button>
-  </div>
-  <div class="layers" id="layers"></div>
-  <label class="op">Непрозрачность <input type="range" id="opacity" min="0" max="100"><span id="opVal"></span></label>
-  <label class="op">Смешивание <select class="field" id="blend"></select></label>
-  <p class="hint">Замок — рисовать только по уже нарисованному. Нажми на выбранный слой ещё раз, чтобы переименовать.</p>
-</aside>
+  </section>
+</main>
 
 <footer class="time">
   <div class="time-row">
-    <button class="btn icon" id="playBtn" aria-label="Проиграть" title="Enter" data-icon="play"></button>
-    <button class="btn" id="onionBtn" aria-pressed="false">Калька</button>
+    <span class="grp2">
+      <button class="btn icon" id="fFirst" data-icon="first" aria-label="Первый кадр"></button>
+      <button class="btn icon" id="fPrev" data-icon="prev" aria-label="Предыдущий кадр"></button>
+      <button class="btn icon" id="playBtn" data-icon="play" aria-label="Проиграть" title="Enter"></button>
+      <button class="btn icon" id="fNext" data-icon="next" aria-label="Следующий кадр"></button>
+      <button class="btn icon" id="fLast" data-icon="last" aria-label="Последний кадр"></button>
+    </span>
     <span class="sep"></span>
     <button class="btn small" id="fAdd">Кадр +</button>
     <button class="btn small" id="fDup">Копия</button>
@@ -225,11 +234,29 @@ textarea.field{height:auto;padding:8px;resize:vertical}
     <button class="btn small icon" id="fLeft" aria-label="Сдвинуть кадр влево">←</button>
     <button class="btn small icon" id="fRight" aria-label="Сдвинуть кадр вправо">→</button>
     <span class="sep"></span>
-    <label>Длительность <input type="number" id="dur" class="field num" min="10" max="5000" step="10"> мс</label>
+    <label>Длит. <input type="number" id="dur" class="field num" min="10" max="5000" step="10"> мс</label>
     <button class="btn small" id="durAll">Всем кадрам</button>
+    <span class="grow"></span>
+    <span class="grp2">
+      <button class="btn icon" id="gridBtn" data-icon="grid" aria-pressed="true" aria-label="Сетка" title="Сетка"></button>
+      <button class="btn icon" id="onionBtn" data-icon="onion" aria-pressed="false" aria-label="Калька" title="Калька"></button>
+    </span>
+    <span class="grp2">
+      <button class="btn icon" id="undoBtn" aria-label="Отменить" title="Отменить (⌘Z)" data-icon="undo"></button>
+      <button class="btn icon" id="redoBtn" aria-label="Повторить" title="Повторить (⇧⌘Z)" data-icon="redo"></button>
+    </span>
   </div>
-  <div class="tags" id="tags"></div>
-  <div class="strip" id="strip"></div>
+  <div class="frames-row">
+    <select class="field" id="tagSel" aria-label="Анимация"></select>
+    <button class="btn small icon" id="tagNew" aria-label="Новый тег анимации" title="Новый тег">+</button>
+    <button class="btn small icon" id="tagEdit" aria-label="Изменить тег" title="Изменить тег">✎</button>
+    <div class="strip" id="strip"></div>
+  </div>
+  <div class="status">
+    <button class="sbtn" id="sizeBtn" title="Размер холста">32×32</button>
+    <span class="zoomgrp"><button class="sbtn" id="zoomOut" aria-label="Отдалить">−</button><button class="sbtn" id="zoomLbl" title="Вписать в экран">100%</button><button class="sbtn" id="zoomIn" aria-label="Приблизить">+</button></span>
+    <span id="stFrames"></span><span id="stFps"></span><span id="metaPos"></span>
+  </div>
 </footer>
 
 <div class="modal" id="modal" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
@@ -258,13 +285,17 @@ const ICONS={
   wand:["......#..",".....###.","......#..",".....#...","....#....","...#.....","..#......",".#.......","#........"],
   move:["....#....","...###...","....#....",".#..#..#.","#########",".#..#..#.","....#....","...###...","....#...."],
   text:["#########","#...#...#","....#....","....#....","....#....","....#....","....#....","....#....","...###..."],
+  first:["#.....#..","#....##..","#...###..","#..####..","#.#####..","#..####..","#...###..","#....##..","#.....#.."],
+  prev:[".....#..#","....##..#","...###..#","..####..#",".#####..#","..####..#","...###..#","....##..#",".....#..#"],
+  grid:["#########","#...#...#","#...#...#","#...#...#","#########","#...#...#","#...#...#","#...#...#","#########"],
+  onion:["#####....","#...#....","#..#####.","#..#.#..#","#####...#","...#....#","...#....#","...######","........."],
   undo:[".........","..#......",".##......","#######..",".##....#.","..#.....#","........#",".......#.","....###.."],
   play:["..#......","..##.....","..###....","..####...","..#####..","..####...","..###....","..##.....","..#......"],
   pause:[".##...##.",".##...##.",".##...##.",".##...##.",".##...##.",".##...##.",".##...##.",".##...##.",".##...##."],
   eye:[".........",".........","...###...",".##...##.","#...#...#",".##...##.","...###...",".........","........."],
   lock:["..#####..",".#.....#.",".#.....#.","#########","#########","####.####","####.####","#########","#########"]
 };
-ICONS.redo=ICONS.undo.map(r=>[...r].reverse().join(''));
+ICONS.redo=ICONS.undo.map(r=>[...r].reverse().join(''));ICONS.next=ICONS.prev.map(r=>[...r].reverse().join(''));ICONS.last=ICONS.first.map(r=>[...r].reverse().join(''));
 function icon(n){const rows=ICONS[n];let r='';rows.forEach((row,y)=>{for(let x=0;x<row.length;x++)if(row[x]==='#')r+=`<rect x="${x}" y="${y}" width="1" height="1"/>`});return `<svg class="px" viewBox="0 0 ${rows[0].length} ${rows.length}" aria-hidden="true">${r}</svg>`}
 document.querySelectorAll('[data-icon]').forEach(el=>el.innerHTML=icon(el.dataset.icon));
 
@@ -596,7 +627,7 @@ function updateUndoUI(){$('#undoBtn').disabled=!undoStack.length;$('#redoBtn').d
 let thumbTimer=null;
 function changed(final){requestRender();const f=stroke&&stroke.f!=null?stroke.f:st.frame;if(final){drawThumb(f);scheduleAutosave()}else if(!thumbTimer)thumbTimer=setTimeout(()=>{thumbTimer=null;drawThumb(f)},120)}
 function structureChanged(){st.layer=clamp(st.layer,0,doc.layers.length-1);st.frame=clamp(st.frame,0,doc.frames.length-1);if(st.activeTag>=doc.tags.length)st.activeTag=-1;renderLayers();renderFrames();renderTags();frameSelected();updateUndoUI();updateMeta();requestRender();scheduleAutosave()}
-function updateMeta(){$('#sizeBtn').textContent=`${doc.w}×${doc.h}`;$('#metaPos').textContent=hover&&hover.x>=0&&hover.y>=0&&hover.x<doc.w&&hover.y<doc.h?`${hover.x}, ${hover.y}`:''}
+function updateMeta(){$('#sizeBtn').textContent=`${doc.w}×${doc.h}`;$('#stFrames').textContent=`Кадр ${st.frame+1} / ${doc.frames.length}`;$('#stFps').textContent=`FPS ${Math.round(1000/(doc.frames[st.frame]?.dur||100))}`;$('#metaPos').textContent=hover&&hover.x>=0&&hover.y>=0&&hover.x<doc.w&&hover.y<doc.h?`${hover.x}, ${hover.y}`:''}
 
 /* ---------- tools UI ---------- */
 const toolsEl=$('#tools');
@@ -726,7 +757,7 @@ let thumbs=[];
 function tagOf(f){return doc.tags.find(t=>f>=t.from&&f<=t.to)}
 function renderFrames(){
   const strip=$('#strip');strip.innerHTML='';thumbs=[];
-  const s=Math.min(52/doc.w,52/doc.h);
+  const s=Math.min(32/doc.w,32/doc.h);
   doc.frames.forEach((F,f)=>{const b=document.createElement('button');b.className='frame';b.setAttribute('aria-label',`Кадр ${f+1}`);
     const t=tagOf(f);if(t){const bar=document.createElement('i');bar.className='tagbar';bar.style.background=t.color;b.append(bar)}
     const c=document.createElement('canvas');c.width=doc.w;c.height=doc.h;c.style.width=Math.max(1,doc.w*s)+'px';c.style.height=Math.max(1,doc.h*s)+'px';
@@ -737,7 +768,7 @@ function renderFrames(){
 function drawThumb(f){const c=thumbs[f];if(c)composite(f,c.getContext('2d'))}
 function drawAllThumbs(){thumbs.forEach((_,f)=>drawThumb(f))}
 function frameSelected(){const kids=$('#strip').children;for(let i=0;i<kids.length;i++)kids[i].classList.toggle('on',i===st.frame);
-  $('#dur').value=doc.frames[st.frame].dur;requestRender();if(!st.playing)kids[st.frame]?.scrollIntoView({inline:'nearest',block:'nearest'})}
+  $('#dur').value=doc.frames[st.frame].dur;updateMeta();requestRender();if(!st.playing)kids[st.frame]?.scrollIntoView({inline:'nearest',block:'nearest'})}
 function goFrame(d){if(st.playing)stopPlay();commitFloat();st.frame=(st.frame+d+doc.frames.length)%doc.frames.length;frameSelected()}
 function tagsInsert(i){doc.tags.forEach(t=>{if(t.from>=i){t.from++;t.to++}else if(t.to>=i-1)t.to++})}
 function tagsDelete(i){doc.tags.forEach(t=>{if(t.from>i)t.from--;if(t.to>=i)t.to--});doc.tags=doc.tags.filter(t=>t.to>=t.from)}
@@ -746,18 +777,16 @@ $('#fDup').onclick=()=>docOp(()=>{const i=st.frame+1;doc.frames.splice(i,0,{...d
 $('#fDel').onclick=()=>{if(doc.frames.length<2){toast('Нужен хотя бы один кадр');return}docOp(()=>{doc.frames.splice(st.frame,1);doc.cels.forEach(r=>r.splice(st.frame,1));tagsDelete(st.frame);st.frame=Math.max(0,st.frame-1)})};
 function moveFrame(d){const a=st.frame,b=a+d;if(b<0||b>=doc.frames.length)return;docOp(()=>{[doc.frames[a],doc.frames[b]]=[doc.frames[b],doc.frames[a]];doc.cels.forEach(r=>{[r[a],r[b]]=[r[b],r[a]]});st.frame=b})}
 $('#fLeft').onclick=()=>moveFrame(-1);$('#fRight').onclick=()=>moveFrame(1);
-$('#dur').addEventListener('change',e=>{doc.frames[st.frame].dur=clamp(Math.round(+e.target.value)||100,10,5000);e.target.value=doc.frames[st.frame].dur;scheduleAutosave()});
+$('#dur').addEventListener('change',e=>{doc.frames[st.frame].dur=clamp(Math.round(+e.target.value)||100,10,5000);e.target.value=doc.frames[st.frame].dur;updateMeta();scheduleAutosave()});
 $('#durAll').onclick=()=>{const v=doc.frames[st.frame].dur;const t=doc.tags[st.activeTag];doc.frames.forEach((F,i)=>{if(!t||i>=t.from&&i<=t.to)F.dur=v});toast(t?`Кадрам тега «${t.name}»: ${v} мс`:`Всем кадрам: ${v} мс`);scheduleAutosave()};
 $('#onionBtn').onclick=e=>{st.onion=!st.onion;e.currentTarget.setAttribute('aria-pressed',st.onion);requestRender()};
 function renderTags(){
-  let h=`<span class="lbl">Анимации</span><button class="btn small chip" data-tag="-1" aria-pressed="${st.activeTag===-1}">Все кадры</button>`;
-  doc.tags.forEach((t,i)=>h+=`<button class="btn small chip" data-tag="${i}" aria-pressed="${st.activeTag===i}" title="${st.activeTag===i?'Нажми ещё раз, чтобы изменить':''}"><i style="background:${t.color}"></i>${esc(t.name)} <span class="lbl">${t.from+1}–${t.to+1}</span></button>`);
-  h+=`<button class="btn small" data-tag="new">Тег +</button>`;$('#tags').innerHTML=h;
+  const sel=$('#tagSel');sel.innerHTML='<option value="-1">Все кадры</option>'+doc.tags.map((t,i)=>`<option value="${i}">${esc(t.name)} (${t.from+1}–${t.to+1})</option>`).join('');
+  sel.value=String(st.activeTag);$('#tagEdit').disabled=st.activeTag<0;
 }
-$('#tags').addEventListener('click',e=>{const b=e.target.closest('[data-tag]');if(!b)return;const v=b.dataset.tag;
-  if(v==='new'){tagDialog(null);return}const i=+v;
-  if(i>=0&&st.activeTag===i){tagDialog(i);return}
-  if(st.playing)stopPlay();st.activeTag=i;if(i>=0){commitFloat();st.frame=doc.tags[i].from;frameSelected()}renderTags()});
+$('#tagSel').onchange=e=>{if(st.playing)stopPlay();st.activeTag=+e.target.value;if(st.activeTag>=0){commitFloat();st.frame=doc.tags[st.activeTag].from;frameSelected()}renderTags()};
+$('#tagNew').onclick=()=>tagDialog(null);
+$('#tagEdit').onclick=()=>{if(st.activeTag>=0)tagDialog(st.activeTag)};
 function tagDialog(idx){
   const n=doc.frames.length,isNew=idx==null;
   const t=isNew?{name:`Анимация ${doc.tags.length+1}`,from:st.frame,to:st.frame,dir:'forward',color:TAGC[doc.tags.length%TAGC.length]}:{...doc.tags[idx]};
@@ -783,6 +812,12 @@ function tick(){playIdx=(playIdx+1)%playList.length;st.frame=playList[playIdx];f
 function stopPlay(){clearTimeout(playTimer);st.playing=false;updatePlayUI();frameSelected()}
 function togglePlay(){st.playing?stopPlay():startPlay()}
 $('#playBtn').onclick=togglePlay;
+function tagRange(){const t=doc.tags[st.activeTag];return t?[t.from,Math.min(t.to,doc.frames.length-1)]:[0,doc.frames.length-1]}
+function goTo(f){if(st.playing)stopPlay();commitFloat();st.frame=f;frameSelected()}
+$('#fFirst').onclick=()=>goTo(tagRange()[0]);$('#fLast').onclick=()=>goTo(tagRange()[1]);
+$('#fPrev').onclick=()=>goFrame(-1);$('#fNext').onclick=()=>goFrame(1);
+function syncViewBtns(){$('#gridBtn').setAttribute('aria-pressed',st.grid)}
+$('#gridBtn').onclick=()=>{st.grid=!st.grid;syncViewBtns();saveUI();requestRender()};
 
 /* ---------- input ---------- */
 const ptrs=new Map();let penSeen=false,gesture=null,panning=null,tap=null,touchLock=false,spaceDown=false;
@@ -884,8 +919,6 @@ addEventListener('keyup',e=>{if(e.code==='Space')spaceDown=false});
 /* ---------- top bar ---------- */
 $('#undoBtn').onclick=undo;$('#redoBtn').onclick=redo;
 $('#zoomIn').onclick=()=>zoomStep(1);$('#zoomOut').onclick=()=>zoomStep(-1);$('#zoomLbl').onclick=fitView;
-$('#sideBtn').onclick=()=>document.body.classList.add('side-open');
-$('#sideClose').onclick=()=>document.body.classList.remove('side-open');
 
 /* ---------- modal & toast ---------- */
 const modal=$('#modal');let onModalClose=null;
@@ -919,14 +952,16 @@ function viewMenu(){
   <h3>Крупная сетка (видно тайлы и части спрайта)</h3>
   <div class="seg">${[0,8,16,32].map(n=>`<button class="btn small" data-g="${n}" aria-pressed="${st.gridN===n}">${n?n+'×'+n:'Нет'}</button>`).join('')}<input type="number" class="field num" id="gN" min="2" max="256" placeholder="Своя" value="${[0,8,16,32].includes(st.gridN)?'':st.gridN}"></div>
   <button class="btn" data-v="tile" aria-pressed="${st.tile}">Тайловый режим — для бесшовных текстур</button>
-  <button class="btn" data-v="prev" aria-pressed="${prev.on}">Окно предпросмотра</button>
+  <h3>Окна</h3>${WINS.map(([id,l])=>`<button class="btn" data-w="${id}" aria-pressed="${!WS[id].hid}">${l}</button>`).join('')}
+  <button class="btn" data-w="reset">Расставить окна заново</button>
   <button class="btn" data-v="fit">Вписать холст в экран</button></div>
   <div class="actions"><button class="btn primary" data-close>Готово</button></div>`);
   const sh=$('#sheet');
   sh.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{const v=b.dataset.v;
     if(v==='grid')st.grid=!st.grid;else if(v==='tile'){st.tile=!st.tile;if(st.tile)toast('Рисунок повторяется по краям. Рисуй через край — продолжится с другой стороны')}
-    else if(v==='prev')togglePreview();else if(v==='fit'){closeModal();fitView();return}
-    saveUI();requestRender();viewMenu()});
+    else if(v==='fit'){closeModal();fitView();return}
+    syncViewBtns();saveUI();requestRender();viewMenu()});
+  sh.querySelectorAll('[data-w]').forEach(b=>b.onclick=()=>{const id=b.dataset.w;if(id==='reset')resetWins();else{WS[id].hid=!WS[id].hid;if(!WS[id].hid)WS[id].col=false;placeWin(id)}saveUI();viewMenu()});
   sh.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{st.gridN=+b.dataset.g;saveUI();requestRender();viewMenu()});
   $('#gN').onchange=e=>{const v=Math.round(+e.target.value);st.gridN=v>1?clamp(v,2,256):0;saveUI();requestRender();viewMenu()};
 }
@@ -1207,7 +1242,7 @@ async function kvSet(k,v){try{await IDB.set(k,v);return}catch{}if(window.storage
 let saveTimer=null,booted=false;
 const saveNow=()=>{if(booted)kvSet('pixelnya:project',JSON.stringify(serialize()))};
 function scheduleAutosave(){clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,1200)}
-function saveUI(){if(booted)kvSet('pixelnya:ui',JSON.stringify({grid:st.grid,gridN:st.gridN,tile:st.tile,prev:{on:prev.on,scale:prev.scale,x:prev.x,y:prev.y}}))}
+function saveUI(){if(booted)kvSet('pixelnya:ui',JSON.stringify({grid:st.grid,gridN:st.gridN,tile:st.tile,prevScale:prev.scale,wins:WS}))}
 document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(saveTimer);saveNow();saveRefsNow();saveUI()}});
 
 /* ---------- floating windows (references, preview) ---------- */
@@ -1280,42 +1315,63 @@ function zoomRef(R,z,cx,cy,anc){z=clamp(z,.2,60);const bw=R.body.clientWidth,bh=
   let ix,iy,mx,my;if(anc)({ix,iy,mx,my}=anc);else{ix=(cx-R.tx)/R.s;iy=(cy-R.ty)/R.s;mx=cx;my=cy}
   R.z=z;const s=fit*z;R.px=mx-ix*s-(bw-R.iw*s)/2;R.py=my-iy*s-(bh-R.ih*s)/2;layoutRef(R);saveRefs()}
 
-const prev={on:false,scale:2,play:false,x:null,y:null,el:null,cv:null,timer:null,idx:0,list:[]};
-function prevScale(){return Math.max(1,Math.min(prev.scale,Math.floor(280/Math.max(doc.w,doc.h))||1))}
-function togglePreview(on){prev.on=on??!prev.on;if(prev.on)buildPrev();else{stopPrevPlay();prev.el?.remove();prev.el=null}saveUI()}
-function buildPrev(){
-  if(prev.el)return;const el=document.createElement('div');el.className='ref prev';
-  el.innerHTML=`<div class="ref-bar"><span>Предпросмотр</span><button class="btn small" data-a="sc" title="Масштаб">×${prev.scale}</button><button class="btn small icon" data-a="play" aria-label="Проиграть анимацию">${icon('play')}</button><button class="btn small icon" data-a="x" aria-label="Закрыть предпросмотр">×</button></div><div class="prev-body"><canvas></canvas></div>`;
-  stage.append(el);prev.el=el;prev.cv=el.querySelector('canvas');
-  el.addEventListener('pointerdown',e=>e.stopPropagation());
-  const bar=el.querySelector('.ref-bar');
-  bar.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const a=b.dataset.a;
-    if(a==='sc'){prev.scale=prev.scale>=4?1:prev.scale*2;b.textContent='×'+prev.scale;drawPrevNow();saveUI()}
-    else if(a==='play'){prev.play?stopPrevPlay():startPrevPlay()}
-    else if(a==='x')togglePreview(false)});
-  track(bar,e=>!e.target.closest('button')&&{x0:prev.x,y0:prev.y,sx:e.clientX,sy:e.clientY},(e,s)=>{prev.x=s.x0+e.clientX-s.sx;prev.y=s.y0+e.clientY-s.sy;placePrev()},saveUI);
-  drawPrevNow();
+const WINS=[['winTools','Инструменты'],['winColor','Выбор цвета'],['winPal','Палитра'],['winLayers','Слои'],['winPrev','Предпросмотр']];
+const WS={};let winZ=10;
+const winEl=id=>document.getElementById(id);
+function defaultWins(){
+  const S=stage.getBoundingClientRect(),tw=winEl('winTools').offsetWidth||230,cw=winEl('winColor').offsetWidth||252,lw=winEl('winLayers').offsetWidth||256;
+  const ch=WS.winColor&&!WS.winColor.col?(winEl('winColor').offsetHeight||300):300;
+  return{winTools:{x:8,y:8},winPal:{x:tw+14,y:8,col:true},winPrev:{x:tw+14,y:46,col:true},winColor:{x:S.width-cw-8,y:8},winLayers:{x:S.width-lw-8,y:ch+16}};
 }
-function placePrev(){const el=prev.el;if(!el)return;const S=stage.getBoundingClientRect(),w=el.offsetWidth,h=el.offsetHeight;
-  if(prev.x==null){prev.x=12;prev.y=Math.max(12,S.height-h-12)}
-  prev.x=clamp(prev.x,40-w,Math.max(0,S.width-40));prev.y=clamp(prev.y,0,Math.max(0,S.height-36));el.style.left=prev.x+'px';el.style.top=prev.y+'px'}
-function drawPrevFrom(src){const c=prev.cv;if(!c)return;const s=prevScale(),w=doc.w*s,h=doc.h*s;let moved=false;
-  if(c.width!==w||c.height!==h){c.width=w;c.height=h;c.style.width=w+'px';c.style.height=h+'px';moved=true}
-  const x=c.getContext('2d');x.imageSmoothingEnabled=false;x.clearRect(0,0,w,h);x.drawImage(src,0,0,w,h);if(moved)placePrev()}
+function placeWin(id){
+  const el=winEl(id),s=WS[id];if(!s)return;el.hidden=!!s.hid;if(s.hid){if(id==='winPrev')syncPrev();return}
+  el.classList.toggle('collapsed',!!s.col);el.querySelector('[data-collapse]').textContent=s.col?'+':'–';
+  const S=stage.getBoundingClientRect(),w=el.offsetWidth;
+  s.x=clamp(s.x,40-w,Math.max(0,S.width-40));s.y=clamp(s.y,0,Math.max(0,S.height-34));el.style.left=s.x+'px';el.style.top=s.y+'px';
+  if(id==='winPrev')syncPrev();
+}
+function resetWins(){for(const[id]of WINS){WS[id]={col:false,hid:false}}const d=defaultWins();for(const[id]of WINS){WS[id]={hid:false,col:false,...d[id]};placeWin(id)}const d2=defaultWins();WS.winLayers.y=d2.winLayers.y;placeWin('winLayers')}
+function initWins(saved){
+  for(const[id]of WINS){WS[id]={hid:false,col:false,x:0,y:0}}
+  const d=defaultWins();
+  for(const[id]of WINS){
+    WS[id]={hid:false,col:false,...d[id],...(saved&&saved[id]||{})};
+    const el=winEl(id),bar=el.querySelector('.win-bar');
+    el.addEventListener('pointerdown',e=>{e.stopPropagation();el.style.zIndex=++winZ});
+    el.addEventListener('wheel',e=>e.stopPropagation(),{passive:true});
+    bar.addEventListener('click',e=>{if(e.target.closest('[data-collapse]')){WS[id].col=!WS[id].col;placeWin(id);saveUI()}});
+    track(bar,e=>!e.target.closest('button')&&{x0:WS[id].x,y0:WS[id].y,sx:e.clientX,sy:e.clientY},(e,s)=>{WS[id].x=s.x0+e.clientX-s.sx;WS[id].y=s.y0+e.clientY-s.sy;placeWin(id)},saveUI);
+  }
+  if(!saved||!saved.winLayers){const d2=defaultWins();WS.winLayers.y=d2.winLayers.y}
+  for(const[id]of WINS)placeWin(id);
+}
+const prev={scale:2,play:false,timer:null,idx:0,list:[],el:null,cv:$('#prevCv')};
+function prevScale(){return Math.max(1,Math.min(prev.scale,Math.floor(240/Math.max(doc.w,doc.h))||1))}
+function syncPrev(){const s=WS.winPrev;prev.el=s&&!s.hid&&!s.col?winEl('winPrev'):null;if(!prev.el&&prev.play)stopPrevPlay();if(prev.el)drawPrevNow()}
+function togglePreview(on){const s=WS.winPrev;s.hid=on==null?!s.hid:!on;if(!s.hid)s.col=false;placeWin('winPrev');saveUI()}
+{const bar=winEl('winPrev').querySelector('.win-bar');
+  bar.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;
+    if(b.dataset.a==='sc'){prev.scale=prev.scale>=4?1:prev.scale*2;b.textContent='×'+prev.scale;drawPrevNow();saveUI()}
+    else if(b.dataset.a==='play'){if(WS.winPrev.col){WS.winPrev.col=false;placeWin('winPrev')}prev.play?stopPrevPlay():startPrevPlay()}});}
+function drawPrevFrom(src){const c=prev.cv;if(!c)return;const s=prevScale(),w=doc.w*s,h=doc.h*s;
+  if(c.width!==w||c.height!==h){c.width=w;c.height=h;c.style.width=w+'px';c.style.height=h+'px'}
+  const x=c.getContext('2d');x.imageSmoothingEnabled=false;x.clearRect(0,0,w,h);x.drawImage(src,0,0,w,h)}
 function drawPrevNow(f){composite(f??st.frame,pctx);drawPrevFrom(pcomp)}
-function startPrevPlay(){prev.list=tagSeq(doc.tags[st.activeTag]);if(prev.list.length<2){toast('Добавь хотя бы два кадра');return}prev.play=true;prev.idx=0;setPrevBtn();const step=()=>{const f=prev.list[prev.idx%prev.list.length];drawPrevNow(f);prev.timer=setTimeout(()=>{prev.idx++;if(prev.idx%prev.list.length===0)prev.list=tagSeq(doc.tags[st.activeTag]);step()},doc.frames[f]?.dur||100)};step()}
+function startPrevPlay(){prev.list=tagSeq(doc.tags[st.activeTag]);if(prev.list.length<2){toast('Добавь хотя бы два кадра');return}prev.play=true;prev.idx=0;setPrevBtn();const step=()=>{if(!prev.play)return;const f=prev.list[prev.idx%prev.list.length];drawPrevNow(f);prev.timer=setTimeout(()=>{prev.idx++;if(prev.idx%prev.list.length===0)prev.list=tagSeq(doc.tags[st.activeTag]);step()},doc.frames[f]?.dur||100)};step()}
 function stopPrevPlay(){clearTimeout(prev.timer);prev.play=false;setPrevBtn();if(prev.el)drawPrevNow()}
-function setPrevBtn(){const b=prev.el?.querySelector('[data-a="play"]');if(b){b.innerHTML=icon(prev.play?'pause':'play');b.setAttribute('aria-label',prev.play?'Пауза':'Проиграть анимацию')}}
-new ResizeObserver(()=>{refs.forEach(placeRef);placePrev()}).observe(stage);
+function setPrevBtn(){const b=winEl('winPrev').querySelector('[data-a="play"]');b.innerHTML=icon(prev.play?'pause':'play');b.setAttribute('aria-label',prev.play?'Пауза':'Проиграть анимацию')}
+setPrevBtn();
+new ResizeObserver(()=>{refs.forEach(placeRef);for(const[id]of WINS)if(WS[id])placeWin(id)}).observe(stage);
 
 /* ---------- start ---------- */
 sizeAux();renderPalette();renderRecent();setTool('pencil');updatePlayUI();
 (async()=>{
   let loaded=false;
   try{const v=await kvGet('pixelnya:project');if(v){applyProject(JSON.parse(v));loaded=true}}catch{}
-  try{const u=JSON.parse(await kvGet('pixelnya:ui')||'null');if(u){st.grid=u.grid!==false;st.gridN=u.gridN|0;st.tile=!!u.tile;if(u.prev){prev.scale=[1,2,4].includes(u.prev.scale)?u.prev.scale:2;prev.x=u.prev.x??null;prev.y=u.prev.y??null;prev.on=!!u.prev.on}}}catch{}
+  let ui=null;try{ui=JSON.parse(await kvGet('pixelnya:ui')||'null');if(ui){st.grid=ui.grid!==false;st.gridN=ui.gridN|0;st.tile=!!ui.tile;prev.scale=[1,2,4].includes(ui.prevScale)?ui.prevScale:2;winEl('winPrev').querySelector('[data-a="sc"]').textContent='×'+prev.scale}}catch{}
+  syncViewBtns();
   renderPalette();structureChanged();booted=true;
-  requestAnimationFrame(()=>{resize();fitView();drawPicker();if(prev.on)buildPrev();if(!loaded)sizeDialog('new',true)});
+  requestAnimationFrame(()=>{resize();initWins(ui&&ui.wins);fitView();drawPicker();if(!loaded)sizeDialog('new',true)});
   try{const r=await kvGet('pixelnya:refs');if(r)JSON.parse(r).forEach(o=>addRef(o,true))}catch{}
 })();
 })();
