@@ -165,6 +165,17 @@ textarea.field{height:auto;padding:7px;resize:vertical}
 .anchor .btn{width:36px;height:36px;min-width:0;padding:0}
 .tabs{display:flex;gap:6px;flex-wrap:wrap}
 .sheet.wide{width:min(780px,100%)}
+.sheet.exp{width:min(760px,100%)}
+.exgrid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:16px;align-items:start}
+.exL,.exR{display:flex;flex-direction:column;gap:8px;min-width:0}
+.btn.fmt{height:auto;min-height:50px;width:100%;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;padding:7px 10px;text-align:left;white-space:normal}
+.btn.fmt b{font-weight:600;font-size:14px}
+.btn.fmt span{font-size:12px;line-height:1.3;color:var(--muted)}
+.btn.fmt[aria-pressed=true] span{color:var(--accent-ink);opacity:.85}
+.exp .preview img{max-height:170px}
+.done{font-size:13px;word-break:break-word;text-align:center}
+.hint.warn{color:#a4281c;font-weight:600}
+@media(max-width:700px){.exgrid{grid-template-columns:1fr}}
 .gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
 .gcard{position:relative;display:flex;flex-direction:column;gap:5px;border:2px solid var(--line);background:var(--win2);border-radius:3px;padding:6px;min-width:0}
 .gcard.on{outline:3px solid var(--accent);outline-offset:1px}
@@ -197,7 +208,7 @@ textarea.field{height:auto;padding:7px;resize:vertical}
   <button class="btn" id="fileBtn">Файл</button>
   <button class="btn" id="editBtn">Правка</button>
   <button class="btn" id="viewBtn">Вид</button>
-  <button class="btn" id="exportBtn">Экспорт</button>
+  <button class="btn" id="exportBtn" title="Сохранить как PNG, GIF или файл Aseprite">Сохранить как…</button>
   <button class="btn" id="refBtn">Референс</button>
   <span class="grow"></span>
   <span class="grp2">
@@ -876,7 +887,7 @@ function tagDialog(idx){
   const n=doc.frames.length,isNew=idx==null;
   const t=isNew?{name:`Анимация ${doc.tags.length+1}`,from:st.frame,to:st.frame,dir:'forward',color:TAGC[doc.tags.length%TAGC.length]}:{...doc.tags[idx]};
   showModal(`<h2>${isNew?'Новая анимация (тег)':'Анимация'}</h2>
-  <p class="hint">Тег — именованный кусок кадров, например «бег» или «прыжок». Его можно проигрывать и экспортировать отдельно.</p>
+  <p class="hint">Тег — именованный кусок кадров, например «бег» или «прыжок». Его можно проигрывать и сохранять отдельно (GIF или лист кадров только из этой анимации).</p>
   <label>Название <input class="field" id="tN" style="flex:1"></label>
   <div class="wh"><label>С кадра <input type="number" class="field num" id="tF" min="1" max="${n}" value="${t.from+1}"></label><label>по <input type="number" class="field num" id="tT" min="1" max="${n}" value="${t.to+1}"></label></div>
   <label>Проигрывать <select class="field" id="tD"><option value="forward">Вперёд</option><option value="reverse">Назад</option><option value="pingpong">Туда и обратно</option></select></label>
@@ -1200,12 +1211,13 @@ const IOS_APP=(/iP(ad|hone|od)/.test(navigator.userAgent)||(navigator.platform==
 async function offerFile(blob,name,isImage){
   const out=$('#exOut');if(!out)return;
   const sh=canShareFile(blob,name),shareFirst=IOS_APP&&sh;
-  let h='<div class="preview">';
-  if(isImage)h+=`<img id="exImg" alt="Результат экспорта"><p class="hint">${shareFirst?'Нажми «Поделиться» и выбери «Сохранить в Фото» или «Сохранить в Файлы». Ещё можно удержать картинку пальцем и выбрать «Сохранить в Фото».':'На айпаде можно удержать картинку и выбрать «Сохранить в Фото».'}</p>`;
+  let h=`<div class="preview"><p class="done">Готово: <b>${esc(name)}</b> · ${fmtBytes(blob.size)}</p>`;
+  if(isImage)h+=`<img id="exImg" alt="Результат"><p class="hint">${shareFirst?'Нажми «Поделиться» и выбери «Сохранить в Фото» или «Сохранить в Файлы». Ещё можно удержать картинку пальцем и выбрать «Сохранить в Фото».':'На айпаде можно удержать картинку и выбрать «Сохранить в Фото».'}</p>`;
   else h+=`<p class="hint">${shareFirst?'Нажми «Поделиться» и выбери «Сохранить в Файлы». Оттуда файл можно отправить на компьютер.':IOS_APP?'Файл откроется в предпросмотре: нажми там значок «Поделиться» и выбери «Сохранить в Файлы».':'Файл сохранится в «Загрузки» (приложение «Файлы»). Оттуда его можно отправить на компьютер.'}</p>`;
   h+=`<div class="actions">${shareFirst?'<button class="btn primary" id="shBtn">Поделиться</button>':`<button class="btn primary" id="dlBtn">Скачать</button>${sh?'<button class="btn" id="shBtn">Поделиться</button>':''}`}</div></div>`;
   out.innerHTML=h;
-  if(isImage)$('#exImg').src=await toDataURL(blob);
+  const jump=()=>{try{out.scrollIntoView({block:'nearest',behavior:'smooth'})}catch{}};jump();
+  if(isImage){const im=$('#exImg');im.onload=jump;im.src=await toDataURL(blob)}
   const db=$('#dlBtn');if(db)db.onclick=()=>download(blob,name);
   const sb=$('#shBtn');if(sb)sb.onclick=()=>share(blob,name);
 }
@@ -1444,23 +1456,7 @@ async function buildAse(D,palHex,deflate){
 
 /* ---------- save and open files ---------- */
 const safeName=n=>String(n||'sprite').replace(/[\\/:*?"<>|]+/g,'_').trim()||'sprite';
-function saveDialog(){
-  commitFloat();
-  showModal(`<h2>Сохранить файл</h2><div class="menu">
-    <button class="btn" data-sv="ase">Aseprite (.aseprite)</button>
-    <p class="hint">Откроется в Aseprite на компьютере. Слои, кадры, теги анимации и палитра сохранятся.</p>
-    <button class="btn" data-sv="json">Проект Пиксельни (.json)</button>
-    <p class="hint">Запасная копия для себя. Открыть её можно только в Пиксельне.</p></div>
-    <div id="exOut"></div><div class="actions"><button class="btn" data-close>Закрыть</button></div>`);
-  $('#sheet').querySelectorAll('[data-sv]').forEach(b=>b.onclick=async()=>{
-    const k=b.dataset.sv,base=safeName(cur?cur.name:st.ex.name);b.disabled=true;
-    try{
-      if(k==='ase'){const u=await buildAse(doc,palette,deflateZ);await offerFile(new Blob([u],{type:'application/octet-stream'}),base+'.aseprite',false)}
-      else await offerFile(new Blob([JSON.stringify(serialize())],{type:'application/json'}),base+'.pixelnya.json',false);
-    }catch(e){toast('Не получилось собрать файл')}
-    b.disabled=false;
-  });
-}
+function saveDialog(){exportDialog('ase')}
 const isImg=u=>(u[0]===0x89&&u[1]===0x50)||(u[0]===0xFF&&u[1]===0xD8)||(u[0]===0x47&&u[1]===0x49&&u[2]===0x46)||(u[0]===0x42&&u[1]===0x4D)||(u[0]===0x52&&u[1]===0x49&&u[2]===0x46&&u[8]===0x57);
 function imageFileToData(f,name){return new Promise((res,rej)=>{const url=URL.createObjectURL(f),img=new Image();
   img.onload=()=>{URL.revokeObjectURL(url);const w=img.naturalWidth,h=img.naturalHeight;if(w>MAXS||h>MAXS){rej({userMsg:`Картинка ${w}×${h}, а максимум ${MAXS}×${MAXS}`});return}
@@ -1596,17 +1592,17 @@ function showHelp(){showModal(`<h2>Жесты и клавиши</h2><dl class="k
   <dt>[ ]</dt><dd>Размер кисти</dd><dt>X</dt><dd>Поменять цвета</dd>
   <dt>, .</dt><dd>Предыдущий и следующий кадр</dd><dt>Enter</dt><dd>Проиграть анимацию</dd>
   <dt>Пробел</dt><dd>Двигать холст мышью</dd><dt>Alt</dt><dd>Временная пипетка</dd>
-  <dt>⌘Z, ⇧⌘Z, ⌘S</dt><dd>Отменить, повторить, сохранить файл</dd></dl>
-  <p class="hint">Все работы сохраняются сами и лежат в Галерее. Для надёжности время от времени сохраняй файл: Файл → Сохранить. Файл .aseprite открывается в Aseprite на компьютере.</p><p class="hint">Версия ${VERSION}</p>
+  <dt>⌘Z, ⇧⌘Z, ⌘S</dt><dd>Отменить, повторить, «Сохранить как…»</dd></dl>
+  <p class="hint">Все работы сохраняются сами и лежат в Галерее. Для надёжности время от времени сохраняй файл: «Сохранить как…» → «Файл Aseprite», или «Копия всех работ» в Галерее. Файл .aseprite открывается в Aseprite на компьютере.</p><p class="hint">Версия ${VERSION}</p>
   <div class="actions"><button class="btn primary" data-close>Понятно</button></div>`)}
 $('#fileBtn').onclick=()=>{
   showModal(`<h2>Файл</h2><div class="menu">
   <button class="btn" data-m="new">Новый холст…</button><button class="btn" data-m="size">Размер холста…</button>
-  <button class="btn" data-m="open">Открыть файл… (.aseprite, проект или картинка)</button><button class="btn" data-m="save">Сохранить файл…</button>
+  <button class="btn" data-m="open">Открыть файл… (.aseprite, проект или картинка)</button><button class="btn" data-m="save">Сохранить как… (PNG, GIF, Aseprite)</button>
   <button class="btn" data-m="pal">Загрузить палитру (.hex, .gpl)…</button><button class="btn" data-m="help">Жесты и клавиши</button></div>
   <div class="actions"><button class="btn" data-close>Закрыть</button></div>`);
   $('#sheet').querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{const m=b.dataset.m;
-    if(m==='new')sizeDialog('new');else if(m==='size')sizeDialog('resize');else if(m==='save')saveDialog();else if(m==='help')showHelp();
+    if(m==='new')sizeDialog('new');else if(m==='size')sizeDialog('resize');else if(m==='save')exportDialog();else if(m==='help')showHelp();
     else{closeModal();if(m==='open')openFile();else if(m==='pal')openPalette()}});
 };
 
@@ -1643,46 +1639,108 @@ function encodeGIF(frames,w,h,delays){
   });
   b(0x3B);return new Blob([new Uint8Array(out)],{type:'image/gif'});
 }
-async function buildExport(){
-  const{fmt,scale:s,layout,scope}=st.ex,n=doc.frames.length;let base=(st.ex.name||'sprite').replace(/[\\/:*?"<>|]/g,'_');
-  const tag=scope==='all'?null:doc.tags[+scope];if(tag)base+='_'+tag.name.replace(/[\\/:*?"<>|\s]+/g,'_');
-  if(fmt==='png')return[await toBlob(frameCanvas(st.frame,s)),`${base}.png`];
-  if(fmt==='sheet'){const fw=doc.w*s,fh=doc.h*s;
-    if(layout==='tags'&&doc.tags.length){const rows=doc.tags.map(t=>{const r=[];for(let i=t.from;i<=Math.min(t.to,n-1);i++)r.push(i);return r});const cols=Math.max(...rows.map(r=>r.length));
-      const c=document.createElement('canvas');c.width=cols*fw;c.height=rows.length*fh;const x=c.getContext('2d');rows.forEach((r,y)=>r.forEach((f,i)=>x.drawImage(frameCanvas(f,s),i*fw,y*fh)));return[await toBlob(c),`${base}_sheet.png`]}
-    const list=tag?tagSeq({...tag,dir:'forward'}):[...Array(n).keys()];const cols=layout==='row'?list.length:Math.ceil(Math.sqrt(list.length)),rows=Math.ceil(list.length/cols);
-    const c=document.createElement('canvas');c.width=cols*fw;c.height=rows*fh;const x=c.getContext('2d');
-    list.forEach((f,i)=>x.drawImage(frameCanvas(f,s),(i%cols)*fw,Math.floor(i/cols)*fh));return[await toBlob(c),`${base}_sheet.png`]}
-  const list=tagSeq(tag),frames=[],delays=[];for(const f of list){const c=frameCanvas(f,s);frames.push(c.getContext('2d').getImageData(0,0,c.width,c.height).data);delays.push(Math.max(2,Math.round(doc.frames[f].dur/10)))}
-  return[encodeGIF(frames,doc.w*s,doc.h*s,delays),`${base}.gif`];
+/* ---------- «Сохранить как…»: картинки и файлы в одном окне ---------- */
+const EX_FMTS=['png','gif','sheet','ase','json'],EX_SCALES=[1,2,3,4,6,8,10,16];
+const fmtBytes=n=>n<1024?n+' Б':n<1048576?Math.round(n/1024)+' КБ':(n/1048576).toFixed(1).replace('.',',')+' МБ';
+/* какие кадры и в каком порядке лягут на лист */
+function sheetRows(){
+  const{layout,scope}=st.ex,n=doc.frames.length;
+  if(layout==='tags'&&doc.tags.length)return doc.tags.map(t=>{const r=[];for(let i=t.from;i<=Math.min(t.to,n-1);i++)r.push(i);return r});
+  const tag=scope==='all'?null:doc.tags[+scope],list=tag?tagSeq({...tag,dir:'forward'}):[...Array(n).keys()];
+  const cols=layout==='row'?list.length:Math.ceil(Math.sqrt(list.length)),rows=[];
+  for(let i=0;i<list.length;i+=cols)rows.push(list.slice(i,i+cols));
+  return rows;
 }
-$('#exportBtn').onclick=()=>{
+/* что получится: размер и число кадров */
+function exInfo(){
+  const s=st.ex.scale,w=doc.w*s,h=doc.h*s,tag=st.ex.scope==='all'?null:doc.tags[+st.ex.scope];
+  if(st.ex.fmt==='png')return{w,h,n:1};
+  if(st.ex.fmt==='gif')return{w,h,n:tagSeq(tag).length};
+  if(st.ex.fmt==='sheet'){const rows=sheetRows(),cols=Math.max(...rows.map(r=>r.length));return{w:cols*w,h:rows.length*h,n:rows.reduce((a,r)=>a+r.length,0)}}
+  return null;
+}
+/* айпад не умеет рисовать холсты больше ~16 млн пикселей, а GIF держит все кадры в памяти */
+const exTooBig=i=>!!i&&(i.w*i.h>16e6||i.w>8192||i.h>8192||(st.ex.fmt==='gif'&&i.w*i.h*i.n>64e6));
+function exFileName(){
+  const f=st.ex.fmt,b=safeName(st.ex.name);
+  if(f==='ase')return b+'.aseprite';
+  if(f==='json')return b+'.pixelnya.json';
+  if(f==='png')return b+'.png';
+  const tag=st.ex.scope==='all'?null:doc.tags[+st.ex.scope],suf=tag&&!(f==='sheet'&&st.ex.layout==='tags')?'_'+tag.name.replace(/[\\/:*?"<>|\s]+/g,'_'):'';
+  return b+suf+(f==='sheet'?'_sheet.png':'.gif');
+}
+async function buildExport(){
+  const{fmt,scale:s}=st.ex,name=exFileName();
+  if(fmt==='ase')return[new Blob([await buildAse(doc,palette,deflateZ)],{type:'application/octet-stream'}),name];
+  if(fmt==='json')return[new Blob([JSON.stringify(serialize())],{type:'application/json'}),name];
+  if(fmt==='png')return[await toBlob(frameCanvas(st.frame,s)),name];
+  if(fmt==='sheet'){const rows=sheetRows(),cols=Math.max(...rows.map(r=>r.length)),fw=doc.w*s,fh=doc.h*s;
+    const c=document.createElement('canvas');c.width=cols*fw;c.height=rows.length*fh;const x=c.getContext('2d');
+    rows.forEach((r,y)=>r.forEach((f,i)=>x.drawImage(frameCanvas(f,s),i*fw,y*fh)));return[await toBlob(c),name]}
+  const tag=st.ex.scope==='all'?null:doc.tags[+st.ex.scope],frames=[],delays=[];
+  for(const f of tagSeq(tag)){const c=frameCanvas(f,s);frames.push(c.getContext('2d').getImageData(0,0,c.width,c.height).data);delays.push(Math.max(2,Math.round(doc.frames[f].dur/10)))}
+  return[encodeGIF(frames,doc.w*s,doc.h*s,delays),name];
+}
+function exportDialog(preset){
   if(st.playing)stopPlay();commitFloat();
-  if(st.ex.scope!=='all'&&!doc.tags[+st.ex.scope])st.ex.scope='all';if(st.ex.layout==='tags'&&!doc.tags.length)st.ex.layout='row';
-  const fmts=[['png','Кадр PNG'],['sheet','Спрайтшит'],['gif','GIF']];
-  showModal(`<h2>Экспорт</h2><div class="seg">${fmts.map(([k,l])=>`<button class="btn small" data-fmt="${k}" aria-pressed="${st.ex.fmt===k}">${l}</button>`).join('')}</div>
-  <label>Масштаб <select class="field" id="exScale">${[1,2,3,4,6,8,10,16].map(v=>`<option value="${v}" ${v===st.ex.scale?'selected':''}>×${v}</option>`).join('')}</select></label>
-  <label id="exScopeRow">Кадры <select class="field" id="exScope"><option value="all">Все кадры</option>${doc.tags.map((t,i)=>`<option value="${i}">Тег «${esc(t.name)}»</option>`).join('')}</select></label>
-  <label id="exLayoutRow">Раскладка <select class="field" id="exLayout"><option value="row">В одну строку</option><option value="grid">Сеткой</option>${doc.tags.length?'<option value="tags">Строка на каждый тег</option>':''}</select></label>
-  <label>Имя файла <input class="field" id="exName" value=""></label>
-  <div class="actions"><button class="btn" id="exAse">Для Aseprite…</button><button class="btn" data-close>Закрыть</button><button class="btn primary" id="exGo">Экспортировать</button></div><div id="exOut"></div>`);
-  $('#exAse').onclick=()=>saveDialog();
-  $('#exName').value=st.ex.name;$('#exScope').value=st.ex.scope;$('#exLayout').value=st.ex.layout;
-  const sync=()=>{$('#exLayoutRow').style.display=st.ex.fmt==='sheet'?'flex':'none';$('#exScopeRow').style.display=st.ex.fmt==='png'||doc.tags.length===0||st.ex.fmt==='sheet'&&st.ex.layout==='tags'?'none':'flex';
-    $('#sheet').querySelectorAll('[data-fmt]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.fmt===st.ex.fmt));$('#exOut').innerHTML=''};
-  $('#sheet').querySelectorAll('[data-fmt]').forEach(b=>b.onclick=()=>{st.ex.fmt=b.dataset.fmt;sync()});
-  $('#exScale').onchange=e=>{st.ex.scale=+e.target.value;$('#exOut').innerHTML=''};
-  $('#exScope').onchange=e=>{st.ex.scope=e.target.value;$('#exOut').innerHTML=''};
-  $('#exLayout').onchange=e=>{st.ex.layout=e.target.value;sync()};
-  $('#exName').oninput=e=>{st.ex.name=e.target.value};
-  $('#exGo').onclick=async()=>{const btn=$('#exGo');btn.disabled=true;btn.textContent='Готовлю…';
-    try{const[blob,name]=await buildExport();await offerFile(blob,name,true)}catch(err){toast('Экспорт не удался')}
-    if($('#exGo')){btn.disabled=false;btn.textContent='Экспортировать'}};
-  sync();
-};
+  if(EX_FMTS.includes(preset))st.ex.fmt=preset;if(!EX_FMTS.includes(st.ex.fmt))st.ex.fmt='png';
+  if(!EX_SCALES.includes(st.ex.scale))st.ex.scale=4;
+  if(st.ex.scope!=='all'&&!doc.tags[+st.ex.scope])st.ex.scope='all';
+  if(st.ex.layout==='tags'&&!doc.tags.length)st.ex.layout='row';
+  const card=(k,t,d)=>`<button class="btn fmt" data-fmt="${k}" aria-pressed="${st.ex.fmt===k}"><b>${t}</b><span>${d}</span></button>`;
+  showModal(`<h2>Сохранить как…</h2><div class="exgrid"><div class="exL">
+    <h3>Чтобы показать или отправить</h3>
+    ${card('png','Картинка PNG','Один кадр, как сейчас на экране. Для Фото и переписки')}
+    ${card('gif','Анимация GIF','Все кадры по очереди, как мультик. Её можно отправить в мессенджер')}
+    ${card('sheet','Все кадры одной картинкой','Кадры стоят рядом на одном листе PNG. Нужно для игр (по-английски sprite sheet)')}
+    <h3>Чтобы продолжить работу</h3>
+    ${card('ase','Файл Aseprite','Со слоями и анимациями. Откроется в Aseprite на компьютере')}
+    ${card('json','Файл Пиксельни','Запасная копия работы. Открывается только в Пиксельне')}
+  </div><div class="exR">
+    <label id="exScaleRow">Увеличить <select class="field" id="exScale">${EX_SCALES.map(v=>`<option value="${v}">×${v} · ${doc.w*v}×${doc.h*v}</option>`).join('')}</select></label>
+    <p class="hint" id="exScaleHint">×1 — как нарисовано (для игр). Больше — чтобы картинка не была крошечной.</p>
+    <label id="exScopeRow">Какие кадры <select class="field" id="exScope"><option value="all">Все кадры</option>${doc.tags.map((t,i)=>`<option value="${i}">Анимация «${esc(t.name)}»</option>`).join('')}</select></label>
+    <label id="exLayoutRow">Расположение <select class="field" id="exLayout"><option value="row">В одну строку</option><option value="grid">Сеткой</option>${doc.tags.length?'<option value="tags">Каждая анимация в своей строке</option>':''}</select></label>
+    <label>Имя файла <input class="field" id="exName" autocomplete="off" autocapitalize="off" spellcheck="false" style="flex:1"></label>
+    <p class="hint" id="exInfo"></p>
+    <div class="actions"><button class="btn" data-close>Закрыть</button><button class="btn primary" id="exGo">Создать файл</button></div>
+    <div id="exOut"></div>
+  </div></div>`,null,'exp');
+  $('#exName').value=st.ex.name;$('#exScale').value=String(st.ex.scale);$('#exScope').value=st.ex.scope;$('#exLayout').value=st.ex.layout;
+  const upd=()=>{
+    const f=st.ex.fmt,pic=f==='png'||f==='gif'||f==='sheet',n=doc.frames.length,i=exInfo(),big=exTooBig(i);
+    $('#sheet').querySelectorAll('[data-fmt]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.fmt===f));
+    $('#exScaleRow').style.display=$('#exScaleHint').style.display=pic?'':'none';
+    $('#exScopeRow').style.display=doc.tags.length&&(f==='gif'||(f==='sheet'&&st.ex.layout!=='tags'))?'':'none';
+    $('#exLayoutRow').style.display=f==='sheet'?'':'none';
+    let t;
+    if(big)t='Слишком большая картинка: айпад не сможет её собрать. Выбери меньшее увеличение.';
+    else if(f==='png')t=(n>1?`Сохранится кадр ${st.frame+1} из ${n}. `:'')+`Размер: ${i.w}×${i.h}.`;
+    else if(f==='gif')t=`Кадров в GIF: ${i.n}. Размер: ${i.w}×${i.h}.`;
+    else if(f==='sheet')t=`Кадров на листе: ${i.n}. Размер листа: ${i.w}×${i.h}.`;
+    else if(f==='ase')t=`Сохранятся слои, кадры, анимации и палитра (${plural(doc.layers.length,['слой','слоя','слоёв'])}, ${plural(n,['кадр','кадра','кадров'])}, ${plural(doc.tags.length,['анимация','анимации','анимаций'])}).`+(doc.layers.some(l=>l.lockAlpha)?' Блокировка прозрачности слоя в файле Aseprite не хранится.':'');
+    else t='Сохранится всё как есть. Открыть этот файл можно только в Пиксельне.';
+    const el=$('#exInfo');el.classList.toggle('warn',big);el.innerHTML=esc(t)+(big?'':`<br>Получится файл: <b>${esc(exFileName())}</b>`);
+    const go=$('#exGo');if(go)go.disabled=big;
+    $('#exOut').innerHTML='';
+  };
+  $('#sheet').querySelectorAll('[data-fmt]').forEach(b=>b.onclick=()=>{st.ex.fmt=b.dataset.fmt;saveUI();upd()});
+  $('#exScale').onchange=e=>{st.ex.scale=+e.target.value;saveUI();upd()};
+  $('#exScope').onchange=e=>{st.ex.scope=e.target.value;upd()};
+  $('#exLayout').onchange=e=>{st.ex.layout=e.target.value;saveUI();upd()};
+  $('#exName').oninput=e=>{st.ex.name=e.target.value;upd()};
+  $('#exName').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();e.target.blur();$('#exGo').click()}};
+  $('#exGo').onclick=async()=>{
+    const btn=$('#exGo');btn.disabled=true;btn.textContent='Готовлю…';
+    try{const[blob,name]=await buildExport();await offerFile(blob,name,st.ex.fmt==='png'||st.ex.fmt==='gif'||st.ex.fmt==='sheet')}catch(err){toast('Не получилось собрать файл')}
+    const g=$('#exGo');if(g){g.textContent='Создать файл';g.disabled=exTooBig(exInfo())}
+  };
+  upd();
+}
+$('#exportBtn').onclick=()=>exportDialog();
 
 /* ---------- storage: IndexedDB, falls back to Claude storage ---------- */
-const VERSION='3.0';
+const VERSION='3.1';
 const IDB=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{try{const r=indexedDB.open('pixelnya',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}}));
   const run=async(mode,fn)=>{const db=await open();return new Promise((res,rej)=>{const t=db.transaction('kv',mode),q=fn(t.objectStore('kv'));t.oncomplete=()=>res(q.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})};
   return{get:k=>run('readonly',s=>s.get(k)),set:(k,v)=>run('readwrite',s=>s.put(v,k)),del:k=>run('readwrite',s=>s.delete(k))}})();
@@ -1717,12 +1775,12 @@ async function saveNow(force){
     item.w=doc.w;item.h=doc.h;item.fr=doc.frames.length;item.ly=doc.layers.length;item.t=Date.now();
     if(!await kvSet(projKey(id),data))throw new Error('store');
     await kvSet(thumbKey(id),makeThumb());await saveLib();showSaved(true);
-  }catch{dirty=true;showSaved(false);if(Date.now()-saveWarnT>30000){saveWarnT=Date.now();toast('Не получилось сохранить в память браузера. Сохрани файл вручную: Файл → Сохранить файл')}}
+  }catch{dirty=true;showSaved(false);if(Date.now()-saveWarnT>30000){saveWarnT=Date.now();toast('Не получилось сохранить в память браузера. Сохрани файл вручную: «Сохранить как…»')}}
 }
 function showSaved(ok){const e=$('#stSave');if(!e)return;e.classList.toggle('bad',!ok);e.textContent=ok?'Сохранено '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'Не сохранено!'}
 const flushSave=()=>{clearTimeout(saveTimer);return saveNow()};
 function scheduleAutosave(){dirty=true;clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,1200)}
-function saveUI(){if(booted)kvSet('pixelnya:ui',JSON.stringify({grid:st.grid,gridN:st.gridN,gridZ:st.gridZ,bg:st.bg,tile:st.tile,prevScale:prev.scale,shape:st.shape,touch:st.touch,penSeen,wins:WS}))}
+function saveUI(){if(booted)kvSet('pixelnya:ui',JSON.stringify({grid:st.grid,gridN:st.gridN,gridZ:st.gridZ,bg:st.bg,tile:st.tile,prevScale:prev.scale,shape:st.shape,touch:st.touch,penSeen,ex:{fmt:st.ex.fmt,scale:st.ex.scale,layout:st.ex.layout},wins:WS}))}
 function updateTitle(){const b=$('#nameBtn');if(b)b.textContent=cur?cur.name:'Пиксельня'}
 function resetHistory(){undoStack.length=0;redoStack.length=0;updateUndoUI()}
 function enterWork(item,d){
@@ -1942,7 +2000,7 @@ new ResizeObserver(()=>{refs.forEach(placeRef);for(const[id]of WINS)if(WS[id])pl
 /* ---------- start ---------- */
 sizeAux();renderPalette();renderRecent();setTool('pencil');updatePlayUI();
 (async()=>{
-  let ui=null;try{ui=JSON.parse(await kvGet('pixelnya:ui')||'null');if(ui){st.grid=ui.grid!==false;st.gridN=ui.gridN|0;st.gridZ=[12,16,20,24,32].includes(ui.gridZ)?ui.gridZ:20;st.bg=BGS.some(b=>b[0]===ui.bg)?ui.bg:'chk';st.tile=!!ui.tile;st.shape=ui.shape==='round'?'round':'sq';st.touch=['auto','draw','pan'].includes(ui.touch)?ui.touch:'auto';penSeen=!!ui.penSeen;prev.scale=[1,2,4].includes(ui.prevScale)?ui.prevScale:2;winEl('winPrev').querySelector('[data-a="sc"]').textContent='×'+prev.scale}}catch{}
+  let ui=null;try{ui=JSON.parse(await kvGet('pixelnya:ui')||'null');if(ui){st.grid=ui.grid!==false;st.gridN=ui.gridN|0;st.gridZ=[12,16,20,24,32].includes(ui.gridZ)?ui.gridZ:20;st.bg=BGS.some(b=>b[0]===ui.bg)?ui.bg:'chk';st.tile=!!ui.tile;st.shape=ui.shape==='round'?'round':'sq';st.touch=['auto','draw','pan'].includes(ui.touch)?ui.touch:'auto';penSeen=!!ui.penSeen;if(ui.ex&&typeof ui.ex==='object'){const e=ui.ex;if(EX_FMTS.includes(e.fmt))st.ex.fmt=e.fmt;if(EX_SCALES.includes(e.scale))st.ex.scale=e.scale;if(['row','grid','tags'].includes(e.layout))st.ex.layout=e.layout}prev.scale=[1,2,4].includes(ui.prevScale)?ui.prevScale:2;winEl('winPrev').querySelector('[data-a="sc"]').textContent='×'+prev.scale}}catch{}
   await loadLib();
   const tryOpen=async id=>{try{const v=await kvGet(projKey(id));if(!v)return false;applyDocData(decodeProject(JSON.parse(v)));cur=lib.items.find(i=>i.id===id);lib.cur=id;st.ex.name=cur.name;return true}catch{return false}};
   let loaded=false;
