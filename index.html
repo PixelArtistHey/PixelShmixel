@@ -9,6 +9,8 @@
 <meta name="apple-mobile-web-app-title" content="Пиксельня">
 <title>Пиксельня</title>
 <meta name="theme-color" content="#A9B3D1">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAABuklEQVR42tXWP0gCURwH8K9HLZKlWUvQ4KqLq0PUIBi0B0Flm0OTOAXR1BpHbm6WS0NDf2gqiiYbopAjIQ0bTDRR1JSjaGl48TzePfN8dw79prsfx+f7Hg/e/Ww+fwjDrBEAdrvTKk5Vm3a7U1WbtCNZ4lZKCle3JqBSUrLxs0pJ0esWBBAdAMnQfyBZopN63Ep9NIqWBVRKSiZzT1+/yi0AVxsykyGZ1L/nZ6heL9f0GZKYXjhepK83ozWqAwgmo+OuWfEAqjvy2wDyL0UAyc9nrj5wgHbtneyd7TT4Xm3kcgUA5666Xh8sgNHJw+TtMnnYl3f1OgCbzx8yclVw9afsG3lYORrj6kZ3IKwbCjCj9w8wqfcJMK8bPQNh/feH03P56TiAzuWOsG5oB1X3grDeM4Auv/BwTTMEdH4A/SsRndT03KqAzjkDVW2Sy1arBzdPAAjo7FVBdabEaHYHZCbQBphx2TOgEwdFGT0da6djbW3HI7s9slvbCXsTYW+CswNmntHSF1NtAEs1RzfpsA0gsN7tTKwlALRSkb8mO/08w1Rgz8F0XqN1pnOQjfAPeaizqYQh1/8P+AHfshW3kN92sgAAAABJRU5ErkJggg==">
 <style>
 /* Шрифты встроены в файл, чтобы приложение выглядело одинаково и без интернета.
    Pixelify Sans: Copyright 2021 The Pixelify Sans Project Authors (https://github.com/eifetx/Pixelify-Sans)
@@ -86,7 +88,7 @@ svg.px{width:18px;height:18px;shape-rendering:crispEdges;fill:currentColor;displ
 textarea.field{height:auto;padding:7px;resize:vertical}
 #hex{width:100%;font-variant-numeric:tabular-nums}
 .picker{display:flex;flex-direction:column;gap:6px}
-#sv{width:100%;height:140px;border:2px solid var(--line);touch-action:none;display:block;cursor:crosshair}
+#sv{width:100%;height:118px;border:2px solid var(--line);touch-action:none;display:block;cursor:crosshair}
 #hue{width:100%;height:22px;border:2px solid var(--line);touch-action:none;display:block;cursor:pointer}
 .sub{font-size:13px;color:var(--muted)}
 .recent{display:flex;gap:4px;flex-wrap:wrap;min-height:22px}
@@ -204,6 +206,55 @@ textarea.field{height:auto;padding:7px;resize:vertical}
 .spk{display:flex;align-items:center;padding:0 4px;color:var(--muted)}
 .spk[hidden]{display:none}
 .spk svg.px{width:14px;height:14px}
+/* режимы экрана: «только рисунок» и «только главное» */
+.cornerbar{position:absolute;left:8px;bottom:8px;z-index:999998;display:flex;gap:4px;padding:3px;background:rgba(237,237,242,.78);border:1px solid var(--line);border-radius:3px}
+.cornerbar .btn{box-shadow:none}
+.cornerbar .btn[hidden]{display:none}
+body.m-clean,body.m-mini{grid-template-rows:1fr}
+body.m-clean .top,body.m-clean .time,body.m-mini .top,body.m-mini .time{display:none}
+body.m-clean .win,body.m-clean .ref,body.m-mini .ref{display:none!important}
+body.m-mini .win:not(#winTools):not(#winPal){display:none!important}
+body.m-mini #winTools,body.m-mini #winPal{display:flex!important}
+#view.flipped{transform:scaleX(-1)}
+.flipbadge{position:absolute;right:8px;bottom:8px;z-index:999998;height:30px;padding:0 9px;font-size:13px;box-shadow:none}
+.flipbadge[hidden]{display:none}
+/* пиксель-чек */
+.chkbar{position:absolute;left:0;right:0;margin:0 auto;width:max-content;bottom:8px;z-index:999997;display:flex;flex-wrap:wrap;justify-content:center;gap:4px;align-items:center;padding:5px;background:var(--win);border:2px solid var(--line);border-radius:3px;box-shadow:3px 3px 0 rgba(0,0,0,.28);max-width:calc(100% - 200px)}
+.chkbar[hidden]{display:none}
+.chkbar .cktitle{font-weight:600;font-size:13px;padding:0 4px}
+.chkbar .btn i{width:10px;height:10px;display:inline-block;border:1px solid var(--line)}
+.chkbar .btn b{font-weight:600;font-variant-numeric:tabular-nums}
+.simlist{display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto}
+.simrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.simrow .pair i{width:26px;height:26px}
+.simrow .fine{flex:1;min-width:120px}
+.mvk{display:flex;align-items:center;padding:0 4px;color:var(--muted)}
+.mvk svg.px{width:14px;height:14px}
+.mvlist{display:flex;flex-direction:column;gap:4px;max-height:34vh;overflow:auto;padding-right:2px}
+.mvrow{display:flex;align-items:center;gap:6px}
+.mvrow .mvname{flex:1;min-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mvrow select{width:auto;height:32px}
+.mvrow.on .mvname{font-weight:600}
+.mvprev{display:flex;justify-content:center;background:var(--win2);border:1px solid var(--line);padding:6px}
+.mvprev canvas{image-rendering:pixelated;background:var(--checker);display:block}
+/* напоминание о копии, тема дня */
+.nudge{position:absolute;top:60px;left:0;right:0;margin:0 auto;width:max-content;z-index:999996;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;align-items:center;padding:6px 8px;background:var(--win);border:2px solid var(--line);border-radius:3px;box-shadow:3px 3px 0 rgba(0,0,0,.28);max-width:calc(100% - 24px);font-size:13px}
+.nudge[hidden]{display:none}
+.daily{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;border:2px solid var(--line);border-radius:3px;background:var(--sel)}
+.daily .dtheme{display:flex;flex-direction:column;gap:1px;min-width:120px}
+.daily .dtheme small{color:var(--muted);font-size:12px}
+.daily .dtheme b{font-size:16px;font-weight:600}
+.daily .dstreak{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--ink)}
+.daily .dstreak svg.px{width:16px;height:16px;color:#d9531e}
+/* рампа: тени и света от текущего цвета */
+.rampbox{display:flex;flex-direction:column;gap:4px}
+.ramp-head{display:flex;align-items:center;gap:4px}
+.ramp-head .sub{flex:1}
+.ramp{display:flex;gap:2px}
+.ramp .pal{flex:1;height:26px;aspect-ratio:auto;min-width:0}
+.ramp .pal.base{box-shadow:inset 0 -4px 0 rgba(0,0,0,.35)}
+.rampbig{display:flex;gap:3px}
+.rampbig i{flex:1;height:40px;border:1px solid var(--line);display:block}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -225,6 +276,10 @@ textarea.field{height:auto;padding:7px;resize:vertical}
 
 <main class="stage" id="stage"><canvas id="view"></canvas>
   <div class="selbar" id="selBar" role="toolbar" aria-label="Выделение" hidden><button class="btn primary" id="selDone" hidden>Готово</button><button class="btn" id="selOff">Снять выделение</button></div>
+  <div class="cornerbar" id="cornerBar" role="toolbar" aria-label="Режим экрана"><button class="btn small icon" id="cbUndo" data-icon="undo" aria-label="Отменить" hidden></button><button class="btn small icon" id="cbRedo" data-icon="redo" aria-label="Повторить" hidden></button><button class="btn small icon" id="modeClean" data-icon="clean" aria-pressed="false" aria-label="Только рисунок" title="Только рисунок: спрятать всё остальное"></button><button class="btn small icon" id="modeMini" data-icon="mini" aria-pressed="false" aria-label="Только главное" title="Только главное: инструменты и палитра"></button></div>
+  <div class="chkbar" id="chkBar" role="toolbar" aria-label="Пиксель-чек" hidden><button class="btn small" data-ck="orphan" aria-pressed="true"><i style="background:#ff2bd6"></i>Сироты <b>0</b></button><button class="btn small" data-ck="corner" aria-pressed="true"><i style="background:#ff8a00"></i>Лишние углы <b>0</b></button><button class="btn small" data-ck="jag" aria-pressed="true"><i style="background:#00c2ff"></i>Ступеньки <b>0</b></button><button class="btn small" id="ckSim">Похожие цвета <b>0</b></button><button class="btn small" data-cv="bw" aria-pressed="false">Ч/Б</button><button class="btn small" data-cv="sil" aria-pressed="false" title="Силуэт текущего слоя">Силуэт</button><button class="btn small icon" id="ckHelp" aria-label="Что это значит">?</button><button class="btn small icon" id="ckClose" aria-label="Закрыть пиксель-чек">✕</button></div>
+  <div class="nudge" id="nudge" role="status" hidden><span>Давно не было копии всех работ. Сохранить её сейчас?</span><button class="btn small primary" id="nuYes">Сделать копию</button><button class="btn small" id="nuNo">Позже</button></div>
+  <button class="btn flipbadge" id="flipBadge" hidden title="Рисунок отражён только на экране. Нажми, чтобы вернуть">Вид отражён ✕</button>
   <section class="win" id="winTools" aria-label="Инструменты">
     <div class="win-bar"><i class="grip"></i><span>Инструменты</span><button class="wbtn" data-collapse aria-label="Свернуть">–</button></div>
     <div class="win-body tools-body"><nav class="tools" id="tools" aria-label="Инструменты"></nav><div class="opts" id="opts"></div></div>
@@ -252,6 +307,7 @@ textarea.field{height:auto;padding:7px;resize:vertical}
           <button class="btn small" id="addSw">В палитру</button>
         </div>
       </div>
+      <div class="rampbox"><div class="ramp-head"><span class="sub">Тени и света</span><button class="wbtn" id="rampAdd" title="Добавить эти цвета в палитру" aria-label="Добавить рампу в палитру">+</button><button class="wbtn" id="rampSet" title="Настроить" aria-label="Настроить рампу">⋯</button></div><div class="ramp" id="ramp"></div></div>
     </div>
   </section>
   <section class="win" id="winLayers" aria-label="Слои">
@@ -289,6 +345,7 @@ textarea.field{height:auto;padding:7px;resize:vertical}
     <button class="btn small" id="fDel">Удалить</button>
     <button class="btn small icon" id="fLeft" aria-label="Сдвинуть кадр влево">←</button>
     <button class="btn small icon" id="fRight" aria-label="Сдвинуть кадр вправо">→</button>
+    <button class="btn small" id="mvBtn" title="Слои поедут сами: облака, дождь, фон">Движение…</button>
     <span class="sep"></span>
     <label>Длит. <input type="number" id="dur" class="field num" min="10" max="5000" step="10"> мс</label>
     <button class="btn small" id="durAll">Всем кадрам</button>
@@ -296,6 +353,8 @@ textarea.field{height:auto;padding:7px;resize:vertical}
     <span class="grp2">
       <button class="btn icon" id="gridBtn" data-icon="grid" aria-pressed="true" aria-label="Сетка" title="Сетка"></button>
       <button class="btn icon" id="onionBtn" data-icon="onion" aria-pressed="false" aria-label="Калька" title="Калька"></button>
+      <button class="btn icon" id="checkBtn" data-icon="check" aria-pressed="false" aria-label="Пиксель-чек" title="Пиксель-чек: подсказки по рисунку"></button>
+      <button class="btn icon" id="flipBtn" data-icon="flip" aria-pressed="false" aria-label="Отразить вид" title="Отразить вид, только на экране (F)"></button>
     </span>
   </div>
   <div class="frames-row">
@@ -348,6 +407,12 @@ const ICONS={
   lock:["..#####..",".#.....#.",".#.....#.","#########","#########","####.####","####.####","#########","#########"]
 };
 ICONS.out=[".........","#####....","#...#.#..","#...#.##.","#.#######","#...#.##.","#...#.#..","#####....","........."];
+ICONS.clean=["###...###","#.......#","#.......#",".........",".........",".........","#.......#","#.......#","###...###"];
+ICONS.mini=["#########","#.#.....#","###.....#","#.#.....#","###.....#","#.#.....#","###.....#","#.#.....#","#########"];
+ICONS.check=["..####...",".#....#..","#......#.","#......#.","#......#.",".#....#..","..####...","......##.",".......##"];
+ICONS.drift=[".........","....#....","....##...","#######..","########.","#######..","....##...","....#....","........."];
+ICONS.flame=["....#....","...##....","..###.#..","..#####..",".#######.",".###.###.",".##...##.","..#...#..","...###..."];
+ICONS.flip=["....#....","#...#...#","##..#..##","###.#.###","###.#.###","###.#.###","##..#..##","#...#...#","....#...."];
 ICONS.redo=ICONS.undo.map(r=>[...r].reverse().join(''));ICONS.next=ICONS.prev.map(r=>[...r].reverse().join(''));ICONS.last=ICONS.first.map(r=>[...r].reverse().join(''));
 function icon(n){const rows=ICONS[n];let r='';rows.forEach((row,y)=>{for(let x=0;x<row.length;x++)if(row[x]==='#')r+=`<rect x="${x}" y="${y}" width="1" height="1"/>`});return `<svg class="px" viewBox="0 0 ${rows[0].length} ${rows.length}" aria-hidden="true">${r}</svg>`}
 document.querySelectorAll('[data-icon]').forEach(el=>el.innerHTML=icon(el.dataset.icon));
@@ -385,16 +450,18 @@ const PALETTES=[
 
 /* ---------- state ---------- */
 const newLayer=name=>({name,visible:true,opacity:1,blend:'source-over',lockAlpha:false});
-function makeDoc(w,h){return{w,h,layers:[newLayer('Слой 1')],frames:[{dur:100}],cels:[[new Uint8ClampedArray(w*h*4)]],tags:[]}}
+function makeDoc(w,h){return{w,h,layers:[newLayer('Слой 1')],frames:[{dur:100}],cels:[[new Uint8ClampedArray(w*h*4)]],tags:[],mo:{wrap:true,len:0}}}
 let doc=makeDoc(32,32);
 let palette=DEFAULT_PAL.slice(),palIdx=new Map();
 let undoStack=[],redoStack=[];
 let clip=null,selVer=0;
 const st={layer:0,frame:0,tool:'pencil',size:1,pp:true,mx:false,my:false,filled:false,contig:true,shape:'sq',touch:'auto',focus:false,
-  shade:0,dither:0,selMode:'new',smart:true,sel:null,float:null,
+  shade:0,dither:0,selMode:'new',smart:true,sel:null,float:null,mode:'normal',flip:false,ramp:{n:5,shift:.6},tlOn:true,daily:{on:true,day:0,shift:0},
   primary:[27,33,48,255],secondary:[255,255,255,255],zoom:8,panX:0,panY:0,grid:true,gridN:0,gridZ:20,bg:'chk',tile:false,onion:false,playing:false,activeTag:-1,ants:0,
   ex:{fmt:'png',scale:4,layout:'row',scope:'all',name:'sprite'},text:{text:'Текст',font:0,size:8}};
 const cel=(l=st.layer,f=st.frame)=>doc.cels[l][f];
+const CK={on:false,show:{orphan:true,corner:true,jag:true},view:'',res:null,pair:null,timer:null};
+const CKC={orphan:'#ff2bd6',corner:'#ff8a00',jag:'#00c2ff',pair:'#ffe100'};
 
 /* ---------- за краем холста ---------- */
 /* Слой можно сдвинуть так, что часть рисунка окажется за краем холста. Эти пиксели не пропадают: они лежат рядом со слоем
@@ -464,14 +531,39 @@ const tmp=document.createElement('canvas'),tctx=tmp.getContext('2d');
 const oni=document.createElement('canvas'),octx=oni.getContext('2d');
 const pcomp=document.createElement('canvas'),pctx=pcomp.getContext('2d');
 function sizeAux(){for(const c of[comp,tmp,oni,pcomp]){c.width=doc.w;c.height=doc.h}if(st.sel&&st.sel.length!==doc.w*doc.h){st.sel=null;selVer++}}
-function composite(f,ctx){
-  ctx.clearRect(0,0,doc.w,doc.h);const F=st.float;
+/* k — шаг движения слоёв (0 = как нарисовано). При проигрывании и в GIF слой с движением сдвигается на k×скорость.
+   «Выходит с другой стороны» — рисуем слой плиткой; «уезжает за край» — рисуем и то, что лежит за краем холста */
+function composite(f,ctx,k=0){
+  ctx.clearRect(0,0,doc.w,doc.h);const F=st.float,W=doc.w,H=doc.h;
   doc.layers.forEach((L,l)=>{if(!L.visible||L.opacity<=0)return;
-    tctx.putImageData(new ImageData(doc.cels[l][f],doc.w,doc.h),0,0);
+    const c=doc.cels[l][f];tctx.putImageData(new ImageData(c,W,H),0,0);
     if(F&&F.l===l&&F.f===f)tctx.drawImage(F.canvas,F.x,F.y);
-    ctx.globalAlpha=L.opacity;ctx.globalCompositeOperation=L.blend||'source-over';ctx.drawImage(tmp,0,0)});
+    ctx.globalAlpha=L.opacity;ctx.globalCompositeOperation=L.blend||'source-over';
+    const[ox,oy]=k?moOffset(L,k):[0,0];
+    if(!ox&&!oy)ctx.drawImage(tmp,0,0);
+    else if(!doc.mo||doc.mo.wrap!==false){const x=((ox%W)+W)%W,y=((oy%H)+H)%H;for(const dx of[x-W,x])for(const dy of[y-H,y])ctx.drawImage(tmp,dx,dy)}
+    else{ctx.drawImage(tmp,ox,oy);if(c.sp)ctx.drawImage(spCanvas(c.sp),c.sp.x+ox,c.sp.y+oy)}});
   ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
 }
+/* ---------- движение слоёв ---------- */
+const MO_MAX=1200,BAKE_MAX=80e6;
+const gcd=(a,b)=>{a=Math.abs(a);b=Math.abs(b);while(b)[a,b]=[b,a%b];return a},lcm=(a,b)=>a/gcd(a,b)*b;
+const q4=v=>Math.round(v*4)/4;
+function moOffset(L,k){const m=L.motion;if(!m||!k)return[0,0];return[Math.round(k*m.vx)||0,Math.round(k*m.vy)||0]}
+const moActive=()=>doc.layers.some(L=>L.visible&&L.motion&&(L.motion.vx||L.motion.vy));
+/* за сколько кадров все движущиеся слои вернутся на место, если они выходят с другой стороны */
+function moPeriod(){let P=1;for(const L of doc.layers){const m=L.motion;if(!m||!L.visible)continue;
+  for(const[v,S]of[[m.vx,doc.w],[m.vy,doc.h]]){if(!v)continue;const q=Math.round(Math.abs(v)*4);P=lcm(P,(4*S)/gcd(4*S,q))}}return P}
+function moInfo(n){
+  if(!moActive())return{L:n,seamless:true};
+  const mo=doc.mo||{wrap:true,len:0};
+  if(mo.wrap===false)return{L:Math.max(n,mo.len||60),seamless:false,away:true};
+  const Ls=lcm(moPeriod(),n);
+  if(mo.len)return{L:Math.max(2,mo.len),seamless:mo.len%Ls===0,Ls};
+  if(Ls<=MO_MAX)return{L:Ls,seamless:true,Ls};
+  return{L:Math.min(MO_MAX,Math.max(n,120)),seamless:false,Ls,tooLong:true}}
+/* последовательность для проигрывания и GIF: пары [кадр, шаг движения] */
+function playSeq(tag){const s=tagSeq(tag);if(!moActive())return s.map(f=>[f,0]);const{L}=moInfo(s.length),out=[];for(let k=0;k<L;k++)out.push([s[k%s.length],k]);return out}
 
 /* ---------- view ---------- */
 const stage=$('#stage'),view=$('#view'),vctx=view.getContext('2d');
@@ -523,18 +615,126 @@ function drawGhosts(x0,y0,z,dw,dh){
   if(F)drawCanvasAt(F.canvas,F.x,F.y,F.w,F.h,x0,y0,z);
   vctx.restore();
 }
+/* ---------- пиксель-чек ----------
+   Смотрим на то, что видно в текущем кадре (все видимые слои вместе). Это подсказки, а не ошибки: художник решает сам */
+function ckAnalyze(){
+  composite(st.frame,cctx);const w=doc.w,h=doc.h,n=w*h,d=cctx.getImageData(0,0,w,h).data,K=new Int32Array(n);
+  for(let p=0,i=0;p<n;p++,i+=4)K[p]=d[i+3]<128?-1:(d[i]<<16|d[i+1]<<8|d[i+2]);
+  const at=(x,y)=>x<0||y<0||x>=w||y>=h?-2:K[y*w+x];
+  const orphan=[],corner=[],jag=[],n8=new Uint8Array(n);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const p=y*w+x,c=K[p];if(c<0)continue;
+    let k=0;for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++)if((i||j)&&at(x+i,y+j)===c)k++;n8[p]=k;
+    if(!k){orphan.push(p);continue}
+    /* лишний угол: у пикселя ровно один сосед того же цвета по горизонтали и один по вертикали, угол не залит,
+       и хотя бы одно плечо длиной в один пиксель (иначе это нарочно прямой угол, как у рамки) */
+    const L=at(x-1,y)===c,R=at(x+1,y)===c,U=at(x,y-1)===c,D=at(x,y+1)===c;
+    if(L!==R&&U!==D){const sx=R?1:-1,sy=D?1:-1;if(at(x+sx,y+sy)!==c&&(at(x+2*sx,y)!==c||at(x,y+2*sy)!==c))corner.push(p)}}
+  /* ступеньки: идём по тонким линиям (у каждого пикселя 1–2 соседа того же цвета), режем их на прямые отрезки
+     и сравниваем длины соседних отрезков: 3-1-3 или 2-2-4-2-2 выглядят рвано */
+  const seen=new Uint8Array(n),thin=p=>K[p]>=0&&(n8[p]===1||n8[p]===2);
+  const D4=[[1,0],[-1,0],[0,1],[0,-1]],D8=[[1,1],[1,-1],[-1,1],[-1,-1]];
+  const nextOf=p=>{const x=p%w,y=(p/w)|0,c=K[p];for(const[i,j]of D4.concat(D8)){const X=x+i,Y=y+j;if(X<0||Y<0||X>=w||Y>=h)continue;const q=Y*w+X;if(!seen[q]&&K[q]===c&&thin(q))return q}return-1};
+  const trace=p0=>{const path=[p0];seen[p0]=1;for(let q=nextOf(p0);q>=0;q=nextOf(q)){seen[q]=1;path.push(q)}return path};
+  const runsOf=path=>{const out=[];let run=[path[0]],ax=null,step=null;
+    for(let i=1;i<path.length;i++){const a=path[i-1],b=path[i],dx=b%w-a%w,dy=((b/w)|0)-((a/w)|0);
+      if(Math.abs(dx)+Math.abs(dy)===1){const nax=dx?'h':'v';if(ax&&ax!==nax){out.push({px:run,ax,step,brk:true});run=[a];step=null}ax=nax;run.push(b)}
+      else{out.push({px:run,ax,step});run=[b];ax=null;step=[Math.sign(dx),Math.sign(dy)]}}
+    out.push({px:run,ax,step});return out};
+  const judge=runs=>{let g=[];const flush=()=>{const r=g.map(x=>x.px.length);
+      for(let i=1;i<g.length-1;i++){
+        const dip=r[i]<=Math.min(r[i-1],r[i+1])-2;
+        const bump=r[i-1]===r[i+1]&&r[i]>=r[i-1]+2&&((i>=2&&r[i-2]===r[i-1])||(i+2<g.length&&r[i+2]===r[i+1]));
+        if(dip||bump)for(const p of g[i].px)jag.push(p)}g=[]};
+    let ax=null,st0=null;
+    for(const R of runs){
+      const sameLine=!R.brk&&(R.step==null||st0==null||(R.step[0]===st0[0]&&R.step[1]===st0[1]))&&(!R.ax||!ax||R.ax===ax);
+      if(!sameLine){flush();ax=null;st0=null}
+      if(R.ax)ax=R.ax;if(R.step)st0=R.step;g.push(R)}
+    flush()};
+  for(let p=0;p<n;p++)if(!seen[p]&&thin(p)&&n8[p]===1)judge(runsOf(trace(p)));
+  for(let p=0;p<n;p++)if(!seen[p]&&thin(p))judge(runsOf(trace(p)));
+  /* похожие цвета: пары, которые на глаз почти не отличить */
+  const cnt=new Map();for(let p=0;p<n;p++)if(K[p]>=0)cnt.set(K[p],(cnt.get(K[p])||0)+1);
+  const cols=[...cnt.entries()].sort((a,b)=>b[1]-a[1]).slice(0,192),ok=cols.map(([k])=>toOk([k>>16&255,k>>8&255,k&255])),pairs=[];
+  for(let i=0;i<cols.length;i++)for(let j=i+1;j<cols.length;j++){const a=ok[i],b=ok[j],dd=Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
+    if(dd<.035)pairs.push({a:cols[i][0],b:cols[j][0],na:cols[i][1],nb:cols[j][1],d:dd})}
+  pairs.sort((x,y)=>x.d-y.d);
+  return{orphan,corner,jag:[...new Set(jag)],pairs:pairs.slice(0,40),K};
+}
+const hexK=k=>'#'+k.toString(16).padStart(6,'0');
+function ckRun(){CK.timer=null;if(!CK.on)return;CK.res=ckAnalyze();if(CK.pair){const b=CK.pair.k,out=[];CK.res.K.forEach((v,p)=>{if(v===b)out.push(p)});CK.pair.px=out}ckBarUI();requestRender()}
+function ckSchedule(){if(CK.timer)clearTimeout(CK.timer);CK.timer=setTimeout(ckRun,250)}
+function ckBarUI(){const bar=$('#chkBar'),R=CK.res;
+  bar.querySelectorAll('[data-ck]').forEach(b=>{const k=b.dataset.ck;b.setAttribute('aria-pressed',CK.show[k]);b.querySelector('b').textContent=R?R[k].length:0});
+  $('#ckSim b').textContent=R?R.pairs.length:0;
+  bar.querySelectorAll('[data-cv]').forEach(b=>b.setAttribute('aria-pressed',CK.view===b.dataset.cv))}
+function setCheck(on){CK.on=!!on;$('#chkBar').hidden=!CK.on;$('#checkBtn').setAttribute('aria-pressed',CK.on);if(!CK.on){CK.res=null;CK.pair=null;CK.view=''}else ckRun();requestRender()}
+let vsrc=null,vsctx=null;
+function viewSource(){
+  if(!CK.on||!CK.view)return comp;
+  if(!vsrc){vsrc=document.createElement('canvas');vsctx=vsrc.getContext('2d',{willReadFrequently:true})}
+  if(vsrc.width!==doc.w||vsrc.height!==doc.h){vsrc.width=doc.w;vsrc.height=doc.h}
+  if(CK.view==='bw'){const im=cctx.getImageData(0,0,doc.w,doc.h),d=im.data;
+    for(let i=0;i<d.length;i+=4){if(!d[i+3])continue;const L=toOk([d[i],d[i+1],d[i+2]])[0],g=l2s(L*L*L);d[i]=d[i+1]=d[i+2]=g}
+    vsctx.putImageData(im,0,0)}
+  else{vsctx.globalCompositeOperation='source-over';vsctx.clearRect(0,0,doc.w,doc.h);tctx.putImageData(new ImageData(cel(),doc.w,doc.h),0,0);
+    const F=st.float;if(F&&F.l===st.layer&&F.f===st.frame)tctx.drawImage(F.canvas,F.x,F.y);
+    vsctx.drawImage(tmp,0,0);vsctx.globalCompositeOperation='source-in';vsctx.fillStyle='#1D1F2A';vsctx.fillRect(0,0,doc.w,doc.h);vsctx.globalCompositeOperation='source-over'}
+  return vsrc}
+function drawChecks(x0,y0,z){
+  if(!CK.on||!CK.res||st.playing)return;const w=doc.w,sz=Math.max(z,6),off=(z-sz)/2;
+  const mark=(list,col)=>{let k=0;vctx.beginPath();for(const p of list){if(++k>8000)break;const x=p%w,y=(p/w)|0;vctx.rect(Math.round(x0+x*z+off)+.5,Math.round(y0+y*z+off)+.5,Math.round(sz)-1,Math.round(sz)-1)}
+    vctx.lineWidth=3;vctx.strokeStyle='rgba(0,0,0,.55)';vctx.stroke();vctx.lineWidth=1.5;vctx.strokeStyle=col;vctx.stroke()};
+  vctx.save();
+  for(const k of['jag','corner','orphan'])if(CK.show[k])mark(CK.res[k],CKC[k]);
+  if(CK.pair&&CK.pair.px)mark(CK.pair.px,CKC.pair);
+  vctx.restore()}
+/* «Сделать одним цветом»: меняем цвет b на a во всех слоях и кадрах, и за краем холста тоже */
+function mergeColor(b,a){
+  const br=b>>16&255,bg=b>>8&255,bb=b&255,ar=a>>16&255,ag=a>>8&255,ab=a&255;let total=0;
+  const scan=(d,apply)=>{let k=0;for(let i=0;i<d.length;i+=4)if(d[i+3]&&d[i]===br&&d[i+1]===bg&&d[i+2]===bb){k++;if(apply){d[i]=ar;d[i+1]=ag;d[i+2]=ab}}return k};
+  for(const r of doc.cels)for(const c of r){total+=scan(c,false);if(c.sp)total+=scan(c.sp.d,false)}
+  if(!total)return 0;
+  docOp(()=>{for(const r of doc.cels)for(let f=0;f<r.length;f++){const c=r[f];scan(c,true);if(c.sp){const d=c.sp.d.slice();scan(d,true);c.sp={...c.sp,d}}}});
+  return total}
+function ckSimilarDialog(){
+  const P=CK.res?CK.res.pairs:[];
+  showModal(`<h2>Похожие цвета</h2><p class="hint">Пары цветов, которые на глаз почти не отличить. Часто это случайность: такие цвета можно сделать одним.</p>
+  ${P.length?`<div class="simlist">${P.map((q,i)=>`<div class="simrow"><span class="pair"><i style="background:${hexK(q.a)}"></i><i style="background:${hexK(q.b)}"></i></span><span class="fine">${hexK(q.a)} · ${plural(q.na,['пиксель','пикселя','пикселей'])}<br>${hexK(q.b)} · ${plural(q.nb,['пиксель','пикселя','пикселей'])}</span><button class="btn small" data-show="${i}">Показать</button><button class="btn small" data-merge="${i}">Сделать одним</button></div>`).join('')}</div>`:'<p>Таких пар не нашлось: все цвета хорошо различаются.</p>'}
+  <div class="actions"><button class="btn primary" data-close>Закрыть</button></div>`);
+  $('#sheet').querySelectorAll('[data-show]').forEach(b=>b.onclick=()=>{const q=P[+b.dataset.show];closeModal();CK.pair={k:q.b,px:[]};ckRun();toast(`Жёлтые рамки: пиксели цвета ${hexK(q.b)}`)});
+  $('#sheet').querySelectorAll('[data-merge]').forEach(b=>b.onclick=()=>{const q=P[+b.dataset.merge];closeModal();CK.pair=null;
+    const k=mergeColor(q.b,q.a);toast(k?`Готово: ${plural(k,['пиксель стал','пикселя стали','пикселей стали'])} цветом ${hexK(q.a)}`:'Этот цвет получается от смешивания слоёв: в самих слоях его нет')});
+}
+function ckHelp(){showModal(`<h2>Пиксель-чек</h2><dl class="keys">
+  <dt style="color:${CKC.orphan}">■ Сироты</dt><dd>Одиночные пиксели: рядом нет ни одного пикселя того же цвета. Бывает мусор, а бывает блик в глазу — решай сама</dd>
+  <dt style="color:${CKC.corner}">■ Лишние углы</dt><dd>В линии толщиной в пиксель «двойной» угол, и лесенка выглядит толще. Обычно один пиксель такого угла убирают</dd>
+  <dt style="color:${CKC.jag}">■ Ступеньки</dt><dd>Неровный шаг линии, например 3-1-3 вместо ровного 2-2-2. Линия выглядит рваной</dd>
+  <dt>Похожие цвета</dt><dd>Почти одинаковые цвета, на глаз их не различить. Можно сделать их одним цветом</dd>
+  <dt>Ч/Б</dt><dd>Рисунок без цвета, только яркость: видно, хватает ли контраста</dd>
+  <dt>Силуэт слоя</dt><dd>Текущий слой одной заливкой: читается ли форма</dd></dl>
+  <p class="hint">Проверяется текущий кадр, все видимые слои вместе. Это подсказки, а не ошибки.</p>
+  <div class="actions"><button class="btn primary" data-close>Понятно</button></div>`)}
+$('#chkBar').addEventListener('pointerdown',e=>e.stopPropagation());
+$('#chkBar').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.ck){const k=b.dataset.ck;CK.show[k]=!CK.show[k];ckBarUI();requestRender()}
+  else if(b.dataset.cv){CK.view=CK.view===b.dataset.cv?'':b.dataset.cv;ckBarUI();requestRender()}
+  else if(b.id==='ckSim')ckSimilarDialog();else if(b.id==='ckHelp')ckHelp();else if(b.id==='ckClose')setCheck(false)});
 function render(){
   syncSelBar();
   vctx.setTransform(dpr,0,0,dpr,0,0);vctx.clearRect(0,0,VW,VH);
   const z=st.zoom,x0=st.panX,y0=st.panY,dw=doc.w*z,dh=doc.h*z;
   const tiles=st.tile?[-1,0,1]:[0];
   vctx.imageSmoothingEnabled=false;
-  composite(st.frame,cctx);
-  for(const ty of tiles)for(const tx of tiles)drawBg(x0+tx*dw,y0+ty*dh,dw,dh,z);
+  composite(st.frame,cctx,st.playing?playStep:0);
+  const SIL=CK.on&&CK.view==='sil';
+  for(const ty of tiles)for(const tx of tiles){if(SIL){vctx.fillStyle='#E6E8EF';vctx.fillRect(x0+tx*dw,y0+ty*dh,dw,dh)}else drawBg(x0+tx*dw,y0+ty*dh,dw,dh,z)}
   const n=doc.frames.length;
-  if(st.onion&&n>1&&!st.playing){drawTinted((st.frame-1+n)%n,'#e0443a',.4,x0,y0,dw,dh);if(n>2)drawTinted((st.frame+1)%n,'#3a8de0',.3,x0,y0,dw,dh)}
-  for(const ty of tiles)for(const tx of tiles){if(tx||ty)vctx.globalAlpha=.85;vctx.drawImage(comp,x0+tx*dw,y0+ty*dh,dw,dh);vctx.globalAlpha=1}
-  drawGhosts(x0,y0,z,dw,dh);
+  if(st.onion&&n>1&&!st.playing&&!SIL){drawTinted((st.frame-1+n)%n,'#e0443a',.4,x0,y0,dw,dh);if(n>2)drawTinted((st.frame+1)%n,'#3a8de0',.3,x0,y0,dw,dh)}
+  const SRC=viewSource();
+  for(const ty of tiles)for(const tx of tiles){if(tx||ty)vctx.globalAlpha=.85;vctx.drawImage(SRC,x0+tx*dw,y0+ty*dh,dw,dh);vctx.globalAlpha=1}
+  if(!SIL)drawGhosts(x0,y0,z,dw,dh);
+  drawChecks(x0,y0,z);
   /* тонкая сетка пикселей: невидима на обычном зуме, плавно проявляется и становится полной на st.gridZ (по умолчанию 2000%) */
   const ga=clamp((z-(st.gridZ-8))/8,0,1);
   if(st.grid&&ga>0){
@@ -849,8 +1049,8 @@ function pickAt(x,y,secondary){
 }
 
 /* ---------- undo ---------- */
-function snap(){return{w:doc.w,h:doc.h,layers:doc.layers.map(l=>({...l})),frames:doc.frames.map(f=>({...f})),tags:doc.tags.map(t=>({...t})),cels:doc.cels.map(r=>r.map(cloneCel)),layer:st.layer,frame:st.frame}}
-function restoreSnap(s){const resized=s.w!==doc.w||s.h!==doc.h;doc={w:s.w,h:s.h,layers:s.layers.map(l=>({...l})),frames:s.frames.map(f=>({...f})),tags:s.tags.map(t=>({...t})),cels:s.cels.map(r=>r.map(cloneCel))};st.layer=s.layer;st.frame=s.frame;sizeAux();if(resized)fitView()}
+function snap(){return{w:doc.w,h:doc.h,layers:doc.layers.map(l=>({...l})),frames:doc.frames.map(f=>({...f})),tags:doc.tags.map(t=>({...t})),cels:doc.cels.map(r=>r.map(cloneCel)),mo:{...(doc.mo||{wrap:true,len:0})},layer:st.layer,frame:st.frame}}
+function restoreSnap(s){const resized=s.w!==doc.w||s.h!==doc.h;doc={w:s.w,h:s.h,layers:s.layers.map(l=>({...l})),frames:s.frames.map(f=>({...f})),tags:s.tags.map(t=>({...t})),cels:s.cels.map(r=>r.map(cloneCel)),mo:{...(s.mo||{wrap:true,len:0})}};st.layer=s.layer;st.frame=s.frame;sizeAux();if(resized)fitView()}
 const UNDO_CAP=160*1024*1024;
 function entryBytes(e){if(e.bytes==null){if(e.type==='cel')e.bytes=e.before.length+e.after.length+spBytes(e.sb)+(e.sa!==e.sb?spBytes(e.sa):0);else{let n=0;for(const k of['before','after'])for(const r of e[k].cels)for(const c of r)n+=c.length+spBytes(c.sp);e.bytes=n}}return e.bytes}
 /* история хранится в памяти: ограничиваем и числом шагов, и объёмом, чтобы большие рисунки не валили вкладку */
@@ -860,12 +1060,12 @@ function docOp(fn){if(st.playing)stopPlay();commitFloat();const before=snap();fn
 function applyEntry(e,which){if(e.type==='cel'){const c=doc.cels[e.l][e.f];c.set(e[which]);if(e.sb!==undefined)c.sp=(which==='before'?e.sb:e.sa)||null;st.layer=e.l;st.frame=e.f}else restoreSnap(e[which]);structureChanged()}
 function undo(){if(stroke)return;commitFloat();const e=undoStack.pop();if(!e){toast('Отменять нечего');return}applyEntry(e,'before');redoStack.push(e);updateUndoUI()}
 function redo(){if(stroke)return;commitFloat();const e=redoStack.pop();if(!e)return;applyEntry(e,'after');undoStack.push(e);updateUndoUI()}
-function updateUndoUI(){$('#undoBtn').disabled=!undoStack.length;$('#redoBtn').disabled=!redoStack.length}
+function updateUndoUI(){$('#undoBtn').disabled=$('#cbUndo').disabled=!undoStack.length;$('#redoBtn').disabled=$('#cbRedo').disabled=!redoStack.length}
 
 /* ---------- change propagation ---------- */
 let thumbTimer=null;
-function changed(final){requestRender();const f=stroke&&stroke.f!=null?stroke.f:st.frame;if(final){drawThumb(f);scheduleAutosave();updateSpillMarks()}else if(!thumbTimer)thumbTimer=setTimeout(()=>{thumbTimer=null;drawThumb(f)},120)}
-function structureChanged(){st.layer=clamp(st.layer,0,doc.layers.length-1);st.frame=clamp(st.frame,0,doc.frames.length-1);if(st.activeTag>=doc.tags.length)st.activeTag=-1;renderLayers();renderFrames();renderTags();frameSelected();updateUndoUI();updateMeta();requestRender();scheduleAutosave()}
+function changed(final){requestRender();const f=stroke&&stroke.f!=null?stroke.f:st.frame;if(final){drawThumb(f);scheduleAutosave();updateSpillMarks();if(CK.on)ckSchedule();tlNote();markDay()}else if(!thumbTimer)thumbTimer=setTimeout(()=>{thumbTimer=null;drawThumb(f)},120)}
+function structureChanged(){st.layer=clamp(st.layer,0,doc.layers.length-1);st.frame=clamp(st.frame,0,doc.frames.length-1);if(st.activeTag>=doc.tags.length)st.activeTag=-1;renderLayers();renderFrames();renderTags();frameSelected();updateUndoUI();updateMeta();requestRender();scheduleAutosave();if(CK.on)ckSchedule();tlNote()}
 function updateMeta(){$('#sizeBtn').textContent=`${doc.w}×${doc.h}`;$('#stFrames').textContent=`Кадр ${st.frame+1} / ${doc.frames.length}`;$('#stFps').textContent=`FPS ${Math.round(1000/(doc.frames[st.frame]?.dur||100))}`;$('#metaPos').textContent=hover&&hover.x>=0&&hover.y>=0&&hover.x<doc.w&&hover.y<doc.h?`${hover.x}, ${hover.y}`:''}
 
 /* ---------- tools UI ---------- */
@@ -936,13 +1136,60 @@ dragOn(svC,e=>{const r=svC.getBoundingClientRect();hsv.s=clamp((e.clientX-r.left
 dragOn(hueC,e=>{const r=hueC.getBoundingClientRect();hsv.h=clamp((e.clientX-r.left)/r.width,0,1)*359.9;st.primary=hsvToRgb(hsv);updateColorUI(true)});
 new ResizeObserver(()=>drawPicker()).observe(svC);
 function updateColorUI(fromPicker){if(!fromPicker)syncHsv();drawPicker();const p=hexOf(st.primary),s=hexOf(st.secondary);$('#swPri').style.background=p;$('#swSec').style.background=s;if(document.activeElement!==$('#hex'))$('#hex').value=p;
-  document.querySelectorAll('.pal').forEach(el=>el.classList.toggle('on',el.dataset.c===p))}
+  document.querySelectorAll('.pal').forEach(el=>el.classList.toggle('on',el.dataset.c===p));renderRamp()}
 $('#swSec').onclick=()=>swapColors();
 $('#hex').addEventListener('input',e=>{const c=rgbOf(e.target.value);if(c){st.primary=c;updateColorUI()}});
 $('#hex').addEventListener('blur',()=>updateColorUI());
 function swapColors(){[st.primary,st.secondary]=[st.secondary,st.primary];updateColorUI()}
 $('#swapBtn').onclick=swapColors;
 $('#addSw').onclick=()=>{const h=hexOf(st.primary);if(palette.includes(h)){toast('Этот цвет уже в палитре');return}palette.push(h);renderPalette();scheduleAutosave()};
+/* ---------- рампа: тени холоднее, света теплее ----------
+   Цвета считаем в OKLab/OKLCH: там шаги светлоты выглядят ровными на глаз. Тени поворачивают оттенок к сине-фиолетовому,
+   света к жёлтому; насыщенность в тенях чуть выше, в светах ниже. Серые получают лёгкий холодный и тёплый оттенок */
+const s2l=v=>{v/=255;return v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4)},l2s=v=>{v=v<=.0031308?12.92*v:1.055*Math.pow(v,1/2.4)-.055;return Math.round(clamp(v,0,1)*255)};
+function toOk(c){const r=s2l(c[0]),g=s2l(c[1]),b=s2l(c[2]);
+  const l=Math.cbrt(.4122214708*r+.5363325363*g+.0514459929*b),m=Math.cbrt(.2119034982*r+.6806995451*g+.1073969566*b),q=Math.cbrt(.0883024619*r+.2817188376*g+.6299787005*b);
+  return[.2104542553*l+.793617785*m-.0040720468*q,1.9779984951*l-2.428592205*m+.4505937099*q,.0259040371*l+.7827717662*m-.808675766*q]}
+function okLin(L,a,b){const l=(L+.3963377774*a+.2158037573*b)**3,m=(L-.1055613458*a-.0638541728*b)**3,q=(L-.0894841775*a-1.291485548*b)**3;
+  return[4.0767416621*l-3.3077115913*m+.2309699292*q,-1.2684380046*l+2.6097574011*m-.3413193965*q,-.0041960863*l-.7034186147*m+1.707614701*q]}
+function lchRgb(L,C,h){for(let i=0;i<30;i++){const[r,g,b]=okLin(L,C*Math.cos(h),C*Math.sin(h));if(r>-1e-4&&g>-1e-4&&b>-1e-4&&r<1.0001&&g<1.0001&&b<1.0001)return[l2s(r),l2s(g),l2s(b),255];C*=.86}
+  const[r,g,b]=okLin(L,0,0);return[l2s(r),l2s(g),l2s(b),255]}
+const COOL=264*Math.PI/180,WARM=95*Math.PI/180;
+function turn(h,to,amt){let d=to-h;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return h+Math.sign(d)*Math.min(Math.abs(d),amt)}
+function rampOf(c,n,shift){
+  const[L0,a0,b0]=toOk(c),C0=Math.hypot(a0,b0),h0=Math.atan2(b0,a0),m=(n-1)>>1,grey=C0<.018,out=[];
+  const dd=clamp((L0-.13)/m,.035,.12),dl=clamp((.97-L0)/m,.035,.12),step=shift*14*Math.PI/180;
+  for(let i=0;i<n;i++){const k=i-m;if(!k){out.push([c[0],c[1],c[2],255]);continue}
+    const dark=k<0,a=Math.abs(k),L=clamp(dark?L0-a*dd:L0+a*dl,.03,.99);
+    let C,h;
+    if(grey){C=C0+shift*(dark?.011:.009)*a;h=dark?COOL:WARM}
+    else{h=turn(h0,dark?COOL:WARM,step*a);C=dark?C0*(1+.07*a):C0*Math.max(.2,1-.17*a)}
+    out.push(lchRgb(L,C,h))}
+  return out}
+let rampCols=[],rampBase=null;
+function renderRamp(force){
+  const box=$('#ramp');if(!box)return;const p=hexOf(st.primary);
+  if(force||!rampCols.includes(p)){const base=force&&rampBase?rgbOf(rampBase):st.primary;rampBase=hexOf(base);rampCols=rampOf(base,st.ramp.n,st.ramp.shift).map(hexOf)}
+  if(box.dataset.k!==rampCols.join()){box.dataset.k=rampCols.join();box.innerHTML='';
+    rampCols.forEach(h=>{const b=document.createElement('button');b.className='pal'+(h===rampBase?' base':'');b.style.background=h;b.dataset.c=h;b.setAttribute('aria-label',h);
+      b.onclick=()=>{st.primary=rgbOf(h);updateColorUI()};box.append(b)})}
+  box.querySelectorAll('.pal').forEach(el=>el.classList.toggle('on',el.dataset.c===p));
+}
+function rampToPalette(){const add=rampCols.filter(h=>!palette.includes(h));if(!add.length){toast('Все эти цвета уже есть в палитре');return}setPalette([...palette,...add],`В палитру добавлено цветов: ${add.length}`)}
+function rampDialog(){
+  const draw=()=>{
+    showModal(`<h2>Тени и света</h2><p class="hint">Рампа строится от основного цвета: тени уходят в холодный оттенок, света в тёплый. Так цвет выглядит живее, чем если просто затемнить и осветлить.</p>
+    <span class="rampbig">${rampCols.map(h=>`<i style="background:${h}"></i>`).join('')}</span>
+    <div class="seg"><span class="lbl">Ступеней</span>${[3,5,7,9].map(n=>`<button class="btn small" data-rn="${n}" aria-pressed="${st.ramp.n===n}">${n}</button>`).join('')}</div>
+    <label>Сдвиг оттенка <input type="range" id="rShift" min="0" max="100" value="${Math.round(st.ramp.shift*100)}"><span id="rShiftV">${Math.round(st.ramp.shift*100)}%</span></label>
+    <p class="hint">0% — просто темнее и светлее, без сдвига оттенка.</p>
+    <div class="actions"><button class="btn" id="rAdd">Все в палитру</button><button class="btn primary" data-close>Готово</button></div>`);
+    $('#sheet').querySelectorAll('[data-rn]').forEach(b=>b.onclick=()=>{st.ramp.n=+b.dataset.rn;renderRamp(true);saveUI();draw()});
+    $('#rShift').oninput=e=>{st.ramp.shift=e.target.value/100;$('#rShiftV').textContent=e.target.value+'%';renderRamp(true);$('#sheet .rampbig').innerHTML=rampCols.map(h=>`<i style="background:${h}"></i>`).join('')};
+    $('#rShift').onchange=()=>saveUI();
+    $('#rAdd').onclick=()=>{closeModal();rampToPalette()};
+  };draw()}
+$('#rampSet').onclick=rampDialog;$('#rampAdd').onclick=rampToPalette;
 let recent=[];
 function pushRecent(c){const h=hexOf(c);if(recent[0]===h)return;recent=[h,...recent.filter(x=>x!==h)].slice(0,14);renderRecent()}
 function renderRecent(){const b=$('#recent');b.innerHTML='';if(!recent.length){b.innerHTML='<p class="hint">Здесь появятся цвета, которыми ты рисуешь.</p>';return}
@@ -976,7 +1223,7 @@ function renderLayers(){
     const name=document.createElement('button');name.className='lname';name.textContent=L.name;
     name.onclick=()=>{if(st.layer===l){askText('Имя слоя',L.name,v=>{L.name=v.trim()||L.name;renderLayers();scheduleAutosave()})}else{commitFloat();st.layer=l;renderLayers()}};
     row.dataset.l=l;const cl=doc.cels[l][st.frame],spk=document.createElement('span');spk.className='spk';spk.innerHTML=icon('out');spk.title='Часть слоя лежит за краем холста. Она сохранена: сдвинь слой назад, и она вернётся';spk.hidden=!(cl&&cl.sp);
-    row.append(eye,lock,name,spk);box.append(row)}
+    row.append(eye,lock,name,spk);if(L.motion){const mv=document.createElement('span');mv.className='mvk';mv.innerHTML=icon('drift');mv.title='Слой движется сам (Движение…)';row.append(mv)}box.append(row)}
   updateSpillMarks();
   const L=doc.layers[st.layer];$('#opacity').value=Math.round(L.opacity*100);$('#opVal').textContent=Math.round(L.opacity*100)+'%';$('#blend').value=L.blend||'source-over';
 }
@@ -1013,7 +1260,7 @@ function renderFrames(){
 function drawThumb(f){const c=thumbs[f];if(c)composite(f,c.getContext('2d'))}
 function drawAllThumbs(){thumbs.forEach((_,f)=>drawThumb(f))}
 function frameSelected(){const kids=$('#strip').children;for(let i=0;i<kids.length;i++)kids[i].classList.toggle('on',i===st.frame);
-  $('#dur').value=doc.frames[st.frame].dur;updateMeta();requestRender();if(!st.playing){updateSpillMarks();kids[st.frame]?.scrollIntoView({inline:'nearest',block:'nearest'})}}
+  $('#dur').value=doc.frames[st.frame].dur;updateMeta();requestRender();if(!st.playing){updateSpillMarks();if(CK.on)ckSchedule();kids[st.frame]?.scrollIntoView({inline:'nearest',block:'nearest'})}}
 function goFrame(d){if(st.playing)stopPlay();commitFloat();st.frame=(st.frame+d+doc.frames.length)%doc.frames.length;frameSelected()}
 function tagsInsert(i){doc.tags.forEach(t=>{if(t.from>=i){t.from++;t.to++}else if(t.to>=i-1)t.to++})}
 function tagsDelete(i){doc.tags.forEach(t=>{if(t.from>i)t.from--;if(t.to>=i)t.to--});doc.tags=doc.tags.filter(t=>t.to>=t.from)}
@@ -1050,11 +1297,11 @@ function tagDialog(idx){
   const del=$('#tDel');if(del)del.onclick=()=>{closeModal();docOp(()=>{doc.tags.splice(idx,1);st.activeTag=-1})};
 }
 function tagSeq(t){const n=doc.frames.length;const a=t?clamp(t.from,0,n-1):0,b=t?clamp(t.to,0,n-1):n-1,dir=t?t.dir:'forward';const s=[];for(let i=a;i<=b;i++)s.push(i);if(dir==='reverse')s.reverse();if(dir==='pingpong')for(let i=b-1;i>a;i--)s.push(i);return s}
-let playTimer=null,playIdx=0,playList=[];
+let playTimer=null,playIdx=0,playList=[],playStep=0;
 function updatePlayUI(){const b=$('#playBtn');b.innerHTML=icon(st.playing?'pause':'play');b.setAttribute('aria-label',st.playing?'Пауза':'Проиграть');b.setAttribute('aria-pressed',st.playing)}
-function startPlay(){commitFloat();playList=tagSeq(doc.tags[st.activeTag]);if(playList.length<2){toast('Добавь хотя бы два кадра');return}playIdx=Math.max(0,playList.indexOf(st.frame));st.frame=playList[playIdx];st.playing=true;updatePlayUI();frameSelected();playTimer=setTimeout(tick,doc.frames[st.frame].dur)}
-function tick(){playIdx=(playIdx+1)%playList.length;st.frame=playList[playIdx];frameSelected();playTimer=setTimeout(tick,doc.frames[st.frame].dur)}
-function stopPlay(){clearTimeout(playTimer);st.playing=false;updatePlayUI();frameSelected()}
+function startPlay(){commitFloat();playList=playSeq(doc.tags[st.activeTag]);if(playList.length<2){toast('Добавь хотя бы два кадра или задай слоям движение');return}playIdx=moActive()?0:Math.max(0,playList.findIndex(e=>e[0]===st.frame));[st.frame,playStep]=playList[playIdx];st.playing=true;updatePlayUI();frameSelected();playTimer=setTimeout(tick,doc.frames[st.frame].dur)}
+function tick(){playIdx=(playIdx+1)%playList.length;[st.frame,playStep]=playList[playIdx];frameSelected();playTimer=setTimeout(tick,doc.frames[st.frame].dur)}
+function stopPlay(){clearTimeout(playTimer);st.playing=false;playStep=0;updatePlayUI();frameSelected()}
 function togglePlay(){st.playing?stopPlay():startPlay()}
 $('#playBtn').onclick=togglePlay;
 function tagRange(){const t=doc.tags[st.activeTag];return t?[t.from,Math.min(t.to,doc.frames.length-1)]:[0,doc.frames.length-1]}
@@ -1068,7 +1315,7 @@ $('#gridBtn').onclick=()=>{st.grid=!st.grid;syncViewBtns();saveUI();requestRende
 const ptrs=new Map();let penSeen=false,gesture=null,panning=null,tap=null,touchLock=false,spaceDown=false;
 const touchPans=()=>st.touch==='pan'||(st.touch==='auto'&&penSeen);
 const touchList=()=>[...ptrs.values()].filter(p=>p.type==='touch');
-const local=e=>{const r=view.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}};
+const local=e=>{const r=view.getBoundingClientRect(),x=e.clientX-r.left;return{x:st.flip?r.width-x:x,y:e.clientY-r.top}};
 const toDoc=p=>[Math.floor((p.x-st.panX)/st.zoom),Math.floor((p.y-st.panY)/st.zoom)];
 stage.addEventListener('contextmenu',e=>e.preventDefault());
 const loupe=$('#loupe');
@@ -1077,7 +1324,7 @@ function hideLoupe(){loupe.style.display='none'}
 let hold=null;
 function armHold(id,p){cancelHold();hold={id,x:p.x,y:p.y,t:setTimeout(fireHold,420)}}
 function cancelHold(){if(hold){clearTimeout(hold.t);hold=null}}
-function pickScreen(x,y){pickAt(...toDoc({x,y}),false);const r=view.getBoundingClientRect();showLoupe(r.left+x,r.top+y)}
+function pickScreen(x,y){pickAt(...toDoc({x,y}),false);const r=view.getBoundingClientRect();showLoupe(r.left+(st.flip?r.width-x:x),r.top+y)}
 function fireHold(){const h=hold;hold=null;if(!h||!ptrs.has(h.id)||touchList().length!==1)return;
   if(stroke&&stroke.pointerId===h.id)cancelStroke();if(panning&&panning.id===h.id)panning=null;
   if(tap)tap.moved=true;const rec=ptrs.get(h.id);const was=hexOf(st.primary);
@@ -1122,7 +1369,7 @@ function onUp(e,cancel){
   if(panning&&panning.id===e.pointerId){panning=null;st.panX=Math.round(st.panX);st.panY=Math.round(st.panY)}
   if(rec.type==='touch'){const ts=touchList();
     if(gesture&&ts.length<2){const m=gesture.last||gesture.m0;gesture=null;snapZoom(m.x,m.y)}
-    if(ts.length===0){touchLock=false;if(tap&&!tap.moved&&tap.max>=2&&performance.now()-tap.t0<400){if(tap.max===2)undo();else if(tap.max===3)redo();else setFocus(!st.focus)}tap=null}}
+    if(ts.length===0){touchLock=false;if(tap&&!tap.moved&&tap.max>=2&&performance.now()-tap.t0<400){if(tap.max===2)undo();else if(tap.max===3)redo();else if(st.mode!=='normal')setMode('normal');else setFocus(!st.focus)}tap=null}}
 }
 stage.addEventListener('pointerup',e=>onUp(e,false));
 stage.addEventListener('pointercancel',e=>onUp(e,true));
@@ -1131,13 +1378,13 @@ let wheelSnap=null;
 stage.addEventListener('wheel',e=>{e.preventDefault();const p=local(e);
   if(e.ctrlKey||e.metaKey){zoomAt(st.zoom*Math.exp(-e.deltaY*.01),p.x,p.y);clearTimeout(wheelSnap);wheelSnap=setTimeout(()=>snapZoom(p.x,p.y),250)}
   else if(e.deltaMode===1||(Math.abs(e.deltaY)>=50&&e.deltaX===0))zoomStep(e.deltaY<0?1:-1,p.x,p.y);
-  else{st.panX-=e.deltaX;st.panY-=e.deltaY;requestRender()}},{passive:false});
+  else{st.panX-=st.flip?-e.deltaX:e.deltaX;st.panY-=e.deltaY;requestRender()}},{passive:false});
 document.addEventListener('gesturestart',e=>e.preventDefault());
 addEventListener('keydown',e=>{
   if(!$('#modal').hidden){if(e.key==='Escape')closeModal();return}
   if(e.target.matches('input,textarea,select'))return;
   const mod=e.metaKey||e.ctrlKey;
-  if(e.code==='Tab'&&!mod&&!e.altKey){e.preventDefault();setFocus(!st.focus);return}
+  if(e.code==='Tab'&&!mod&&!e.altKey){e.preventDefault();if(st.mode!=='normal')setMode('normal');else setFocus(!st.focus);return}
   if(mod&&e.code==='KeyZ'){e.preventDefault();e.shiftKey?redo():undo();return}
   if(mod&&e.code==='KeyY'){e.preventDefault();redo();return}
   if(mod&&e.code==='KeyS'){e.preventDefault();saveDialog();return}
@@ -1156,7 +1403,7 @@ addEventListener('keydown',e=>{
   if(e.shiftKey&&e.code==='KeyV'){ACT.flipV();return}
   const t=TOOLS.find(t=>t.code===e.code);if(t){setTool(t.id);return}
   switch(e.code){
-    case'KeyX':swapColors();break;case'BracketLeft':setSize(st.size-1);break;case'BracketRight':setSize(st.size+1);break;
+    case'KeyX':swapColors();break;case'KeyF':setFlip(!st.flip);break;case'BracketLeft':setSize(st.size-1);break;case'BracketRight':setSize(st.size+1);break;
     case'Comma':goFrame(-1);break;case'Period':goFrame(1);break;case'Enter':togglePlay();break;
     case'Equal':case'NumpadAdd':zoomStep(1);break;case'Minus':case'NumpadSubtract':zoomStep(-1);break;case'Digit0':fitView();break;
   }
@@ -1174,6 +1421,29 @@ function setFocus(on){
   requestRender();
 }
 $('#focusBtn').onclick=()=>setFocus(!st.focus);
+/* Режимы экрана. «Только рисунок» прячет всё, кроме холста. «Только главное» оставляет инструменты и палитру.
+   Кнопки в левом нижнем углу видны всегда, чтобы из любого режима можно было вернуться. Рисунок при переключении не прыгает */
+const modeHides=id=>st.mode==='clean'||(st.mode==='mini'&&id!=='winTools'&&id!=='winPal');
+function setMode(m,quiet){
+  if(!['normal','clean','mini'].includes(m))m='normal';
+  const was=st.mode,b0=view.getBoundingClientRect();
+  st.mode=m;document.body.classList.toggle('m-clean',m==='clean');document.body.classList.toggle('m-mini',m==='mini');
+  $('#modeClean').setAttribute('aria-pressed',m==='clean');$('#modeMini').setAttribute('aria-pressed',m==='mini');
+  $('#cbUndo').hidden=$('#cbRedo').hidden=m!=='mini';
+  const b1=view.getBoundingClientRect();st.panX+=Math.round(b0.left-b1.left);st.panY+=Math.round(b0.top-b1.top);
+  resize();for(const[id]of WINS)if(WS[id])placeWin(id);
+  if(!quiet&&m!==was&&m!=='normal')toast(m==='clean'?'Только рисунок. Вернуть всё: эта же кнопка в углу или тап четырьмя пальцами':'Только главное: инструменты и палитра. Вернуть всё: эта же кнопка в углу');
+  saveUI();requestRender();
+}
+$('#cornerBar').addEventListener('pointerdown',e=>e.stopPropagation());
+$('#modeClean').onclick=()=>setMode(st.mode==='clean'?'normal':'clean');
+$('#modeMini').onclick=()=>setMode(st.mode==='mini'?'normal':'mini');
+$('#cbUndo').onclick=undo;$('#cbRedo').onclick=redo;
+/* Отражение вида: зеркалится только картинка на экране, сам рисунок не меняется. Рисовать в отражённом виде можно как обычно */
+function setFlip(on){st.flip=!!on;view.classList.toggle('flipped',st.flip);$('#flipBtn').setAttribute('aria-pressed',st.flip);$('#flipBadge').hidden=!st.flip;requestRender()}
+$('#flipBtn').onclick=()=>setFlip(!st.flip);
+$('#checkBtn').onclick=()=>setCheck(!CK.on);
+$('#flipBadge').addEventListener('pointerdown',e=>e.stopPropagation());$('#flipBadge').onclick=()=>setFlip(false);
 $('#zoomIn').onclick=()=>zoomStep(1);$('#zoomOut').onclick=()=>zoomStep(-1);$('#zoomLbl').onclick=fitView;
 
 /* ---------- modal & toast ---------- */
@@ -1201,6 +1471,84 @@ function askText(title,value,cb){
   const ok=()=>{const v=i.value;closeModal();cb(v)};$('#askOk').onclick=ok;i.addEventListener('keydown',e=>{if(e.key==='Enter')ok()});
 }
 
+/* ---------- окно «Движение слоёв» ---------- */
+const MV_DIRS=[['','стоит'],['r','→ вправо'],['l','← влево'],['u','↑ вверх'],['d','↓ вниз'],['ur','↗'],['dr','↘'],['dl','↙'],['ul','↖']];
+const MV_SP=[[.25,'¼ пикс. за кадр'],[.5,'½ пикс. за кадр'],[1,'1 пикс. за кадр'],[2,'2 пикс.'],[3,'3 пикс.'],[4,'4 пикс.'],[6,'6 пикс.'],[8,'8 пикс.']];
+const dirOf=m=>{if(!m)return'';const sx=Math.sign(m.vx),sy=Math.sign(m.vy);return(sy<0?'u':sy>0?'d':'')+(sx>0?'r':sx<0?'l':'')};
+const spOf=m=>m?Math.max(Math.abs(m.vx),Math.abs(m.vy)):1;
+function toMotion(dir,sp){if(!dir)return null;return{vx:dir.includes('r')?sp:dir.includes('l')?-sp:0,vy:dir.includes('d')?sp:dir.includes('u')?-sp:0}}
+/* временно примерить настройки окна к документу, чтобы показать предпросмотр и посчитать длину цикла */
+function withMotion(cfg,fn){const keep=doc.layers.map(L=>L.motion),mo=doc.mo;
+  doc.layers.forEach((L,i)=>{const m=toMotion(cfg.layers[i].dir,cfg.layers[i].sp);if(m)L.motion=m;else delete L.motion});doc.mo={wrap:cfg.wrap,len:cfg.len};
+  try{return fn()}finally{doc.layers.forEach((L,i)=>{if(keep[i])L.motion=keep[i];else delete L.motion});doc.mo=mo}}
+const secs=ms=>(ms/1000).toFixed(1).replace('.',',')+' с';
+function shiftCel(src,ox,oy,wrap){const w=doc.w,h=doc.h,out=new Uint8ClampedArray(w*h*4);
+  if(wrap){for(let y=0;y<h;y++){const ty=(((y+oy)%h)+h)%h;for(let x=0;x<w;x++){const tx=(((x+ox)%w)+w)%w,si=(y*w+x)*4,di=(ty*w+tx)*4;out[di]=src[si];out[di+1]=src[si+1];out[di+2]=src[si+2];out[di+3]=src[si+3]}}return out}
+  const r=reextent(src.sp?[{x:0,y:0,w,h,d:src},src.sp]:[{x:0,y:0,w,h,d:src}],ox,oy,w,h,out);if(r.sp)out.sp=r.sp;return out}
+function bakeMotion(){
+  const n=doc.frames.length,{L}=moInfo(n),bytes=L*doc.layers.length*doc.w*doc.h*4;if(bytes>BAKE_MAX)return false;
+  docOp(()=>{const frames=[],cels=doc.layers.map(()=>[]),wrap=doc.mo.wrap!==false;
+    for(let k=0;k<L;k++){const f=k%n;frames.push({...doc.frames[f]});
+      doc.layers.forEach((Ly,l)=>{const src=doc.cels[l][f],[ox,oy]=moOffset(Ly,k);cels[l].push(ox||oy?shiftCel(src,ox,oy,wrap):cloneCel(src))})}
+    doc.frames=frames;doc.cels=cels;doc.layers.forEach(Ly=>{delete Ly.motion});doc.mo={wrap:true,len:0};st.frame=0});
+  return true}
+function motionDialog(){
+  if(st.playing)stopPlay();commitFloat();
+  const fresh=!doc.layers.some(L=>L.motion);
+  const cfg={layers:doc.layers.map((L,i)=>({dir:dirOf(L.motion),sp:L.motion?spOf(L.motion):1})),wrap:!doc.mo||doc.mo.wrap!==false,len:doc.mo?doc.mo.len|0:0};
+  if(fresh)cfg.layers[st.layer].dir='r';
+  let timer=null;const stop=()=>{clearTimeout(timer);timer=null};
+  showModal(`<h2>Движение слоёв</h2>
+  <p class="hint">Слой сам поедет кадр за кадром: облака по небу, дождь, бегущий фон. Рисунок при этом не меняется, движение видно при проигрывании и в GIF.</p>
+  <div class="mvlist">${doc.layers.map((L,i)=>i).reverse().map(i=>`<div class="mvrow${i===st.layer?' on':''}"><span class="mvname">${esc(doc.layers[i].name)}${doc.layers[i].visible?'':' (скрыт)'}</span>
+    <select class="field" data-mdir="${i}" aria-label="Куда едет">${MV_DIRS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
+    <select class="field" data-msp="${i}" aria-label="Скорость">${MV_SP.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div>`).join('')}</div>
+  <h3>Что уехало за край</h3>
+  <div class="seg"><button class="btn small" data-mw="1">Выходит с другой стороны</button><button class="btn small" data-mw="0">Уезжает и не возвращается</button></div>
+  <h3>Длина</h3>
+  <div class="seg"><button class="btn small" data-ml="auto">Сама подберёт</button><label class="check" style="gap:6px">Своя: <input type="number" class="field num" id="mvLen" min="2" max="${MO_MAX}" placeholder="кадров" style="width:96px"></label></div>
+  <p class="hint" id="mvInfo"></p>
+  <div class="mvprev"><canvas id="mvCv"></canvas></div>
+  <div class="actions"><button class="btn" id="mvBake">В кадры…</button><button class="btn" id="mvOff">Убрать движение</button><button class="btn" data-close>Отмена</button><button class="btn primary" id="mvOk">Готово</button></div>`,stop);
+  const sh=$('#sheet');
+  const cv=$('#mvCv'),n=tagSeq(null).length,fit=Math.min(380/doc.w,200/doc.h),sc=fit>=1?Math.min(8,Math.floor(fit)):fit;
+  cv.width=doc.w;cv.height=doc.h;cv.style.width=Math.round(doc.w*sc)+'px';cv.style.height=Math.round(doc.h*sc)+'px';
+  const cx=cv.getContext('2d');
+  const info=()=>withMotion(cfg,()=>{const any=moActive(),m=moInfo(n),seq=playSeq(null);let ms=0;for(const[f]of seq)ms+=doc.frames[f].dur;
+    let t;
+    if(!any)t='Пока ни один слой не движется. Выбери слою направление.';
+    else if(m.away)t=`Слои уедут за край и не вернутся, поэтому цикл не бесшовный. Кадров: ${m.L} · ${secs(ms)}.`;
+    else if(m.tooLong)t=`Бесшовный цикл получился бы на ${m.Ls} кадров: это слишком много. Возьми скорость покрупнее или задай длину сама. Сейчас: ${m.L} кадров, не бесшовно.`;
+    else t=`Цикл: ${plural(m.L,['кадр','кадра','кадров'])} · ${secs(ms)}${m.seamless?' · бесшовный: в конце всё встанет на свои места':' · не бесшовный: при повторе будет рывок'}.`;
+    const bytes=m.L*doc.layers.length*doc.w*doc.h*4;
+    return{t,any,m,bytes}});
+  const sync=()=>{
+    sh.querySelectorAll('[data-mdir]').forEach(e=>{const c=cfg.layers[+e.dataset.mdir];e.value=c.dir;sh.querySelector(`[data-msp="${e.dataset.mdir}"]`).value=String(c.sp);sh.querySelector(`[data-msp="${e.dataset.mdir}"]`).disabled=!c.dir});
+    sh.querySelectorAll('[data-mw]').forEach(b=>b.setAttribute('aria-pressed',(b.dataset.mw==='1')===cfg.wrap));
+    sh.querySelector('[data-ml]').setAttribute('aria-pressed',!cfg.len);$('#mvLen').value=cfg.len||'';
+    const r=info();$('#mvInfo').textContent=r.t;
+    const bk=$('#mvBake');bk.disabled=!r.any;bk.title=r.bytes>BAKE_MAX?'Слишком много кадров для такого размера: не хватит памяти':'Сделать из движения настоящие кадры';
+  };
+  let k=0;const play=()=>{stop();const seq=withMotion(cfg,()=>playSeq(null));const step=()=>{const[f,kk]=seq[k%seq.length];withMotion(cfg,()=>composite(f,cctx,kk));cx.clearRect(0,0,cv.width,cv.height);cx.drawImage(comp,0,0);
+    timer=setTimeout(()=>{k=(k+1)%seq.length;step()},doc.frames[f].dur)};step()};
+  sh.querySelectorAll('[data-mdir]').forEach(e=>e.onchange=()=>{cfg.layers[+e.dataset.mdir].dir=e.value;sync();k=0;play()});
+  sh.querySelectorAll('[data-msp]').forEach(e=>e.onchange=()=>{cfg.layers[+e.dataset.msp].sp=+e.value;sync();k=0;play()});
+  sh.querySelectorAll('[data-mw]').forEach(b=>b.onclick=()=>{cfg.wrap=b.dataset.mw==='1';sync();k=0;play()});
+  sh.querySelector('[data-ml]').onclick=()=>{cfg.len=0;sync();k=0;play()};
+  $('#mvLen').onchange=e=>{const v=Math.round(+e.target.value);cfg.len=v>=2?clamp(v,2,MO_MAX):0;sync();k=0;play()};
+  const apply=()=>docOp(()=>{doc.layers.forEach((L,i)=>{const m=toMotion(cfg.layers[i].dir,cfg.layers[i].sp);if(m)L.motion=m;else delete L.motion});doc.mo={wrap:cfg.wrap,len:cfg.len}});
+  $('#mvOk').onclick=()=>{stop();closeModal();apply();toast(moActive()?'Движение задано. Нажми ▶ внизу, чтобы посмотреть':'Движение убрано')};
+  $('#mvOff').onclick=()=>{stop();closeModal();if(doc.layers.some(L=>L.motion))docOp(()=>{doc.layers.forEach(L=>{delete L.motion})});toast('Движение убрано')};
+  $('#mvBake').onclick=()=>{const r=info();
+    if(r.bytes>BAKE_MAX){toast(`Не получится: ${plural(r.m.L,['кадр','кадра','кадров'])} такого размера не поместятся в память. Сократи длину или возьми скорость покрупнее`);return}
+    stop();showModal(`<h2>Превратить движение в кадры?</h2><p>Каждый шаг движения станет настоящим кадром: ${plural(r.m.L,['кадр','кадра','кадров'])}. Тогда движение попадёт и в файл Aseprite, и его можно будет поправить руками в любом кадре.</p><p class="hint">Передумаешь — «Отменить». Прежние кадры останутся основой.</p>
+      <div class="actions"><button class="btn" id="bkNo">Назад</button><button class="btn primary" id="bkYes">Превратить</button></div>`);
+    $('#bkNo').onclick=motionDialog;
+    $('#bkYes').onclick=()=>{closeModal();apply();if(bakeMotion())toast(`Готово: ${plural(doc.frames.length,['кадр','кадра','кадров'])}`);else toast('Не хватило памяти')}};
+  sync();play();
+}
+$('#mvBtn').onclick=motionDialog;
+
 /* ---------- edit & view menus ---------- */
 $('#editBtn').onclick=()=>{
   const has=!!(st.sel||st.float);
@@ -1209,10 +1557,11 @@ $('#editBtn').onclick=()=>{
   ${b('copy','Копировать')}${b('cut','Вырезать')}${b('paste','Вставить',!clip)}${b('del','Удалить выделенное',!has)}
   <h3>Выделение</h3>${b('selall','Выделить всё')}${b('deselect','Снять выделение',!has)}${b('invert','Инвертировать')}
   <h3>Отразить и повернуть (выделенное или весь слой)</h3>${b('flipH','Отразить по горизонтали')}${b('flipV','Отразить по вертикали')}${b('rot','Повернуть на 90°')}
-  <h3>Цвет</h3>${b('replace','Заменить цвет…')}${b('outline','Обводка контуром…')}${b('adjust','Коррекция цвета…')}</div>
+  <h3>Цвет</h3>${b('replace','Заменить цвет…')}${b('outline','Обводка контуром…')}${b('adjust','Коррекция цвета…')}
+  <h3>Анимация</h3>${b('motion','Движение слоёв…')}</div>
   <div class="actions"><button class="btn" data-close>Закрыть</button></div>`);
   $('#sheet').querySelectorAll('[data-e]').forEach(x=>x.onclick=()=>{const a=x.dataset.e;closeModal();
-    if(a==='replace')replaceDialog();else if(a==='outline')outlineDialog();else if(a==='adjust')adjustDialog();else ACT[a]()});
+    if(a==='replace')replaceDialog();else if(a==='outline')outlineDialog();else if(a==='adjust')adjustDialog();else if(a==='motion')motionDialog();else ACT[a]()});
 };
 function viewMenu(){
   showModal(`<h2>Вид</h2><div class="menu">
@@ -1229,10 +1578,21 @@ function viewMenu(){
   <p class="hint">Авто: палец рисует, пока ты не коснёшься экрана Apple Pencil. После этого палец только двигает холст, а рисует стилус.</p>
   <h3>Окна</h3>${WINS.map(([id,l])=>`<button class="btn" data-w="${id}" aria-pressed="${!WS[id].hid}">${l}</button>`).join('')}
   <button class="btn" data-w="reset">Расставить окна заново</button>
-  <button class="btn" data-v="fit">Вписать холст в экран</button></div>
+  <button class="btn" data-v="fit">Вписать холст в экран</button>
+  <h3>Экран</h3>
+  <button class="btn" data-v="flip" aria-pressed="${st.flip}">Отразить вид (только на экране) · F</button>
+  <button class="btn" data-v="daily" aria-pressed="${st.daily.on}">Тема дня и серия дней в Галерее</button>
+  <button class="btn" data-v="check" aria-pressed="${CK.on}">Пиксель-чек: сироты, углы, ступеньки, похожие цвета</button>
+  <button class="btn" data-v="clean" aria-pressed="${st.mode==='clean'}">Только рисунок</button>
+  <button class="btn" data-v="mini" aria-pressed="${st.mode==='mini'}">Только главное: инструменты и палитра</button>
+  <p class="hint">Эти два режима включаются и кнопками в левом нижнем углу холста.</p></div>
   <div class="actions"><button class="btn primary" data-close>Готово</button></div>`);
   const sh=$('#sheet');
   sh.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{const v=b.dataset.v;
+    if(v==='flip'){setFlip(!st.flip);viewMenu();return}
+    if(v==='check'){closeModal();setCheck(!CK.on);return}
+    if(v==='daily'){st.daily.on=!st.daily.on;saveUI();viewMenu();return}
+    if(v==='clean'||v==='mini'){closeModal();setMode(st.mode===v?'normal':v);return}
     if(v==='grid')st.grid=!st.grid;else if(v==='tile'){st.tile=!st.tile;if(st.tile)toast('Рисунок повторяется по краям. Рисуй через край — продолжится с другой стороны')}
     else if(v==='fit'){closeModal();fitView();return}
     syncViewBtns();saveUI();requestRender();viewMenu()});
@@ -1349,6 +1709,7 @@ function serialize(){
     if(sp)spills.push({l,f,x:sp.x,y:sp.y,w:sp.w,h:sp.h,d:toB64(sp.d)});
     return toB64(d)}));
   const o={app:'pixelnya',v:3,name:cur?cur.name:'',w:doc.w,h:doc.h,layers:doc.layers,frames:doc.frames,tags:doc.tags,cels,palette};
+  if(doc.layers.some(L=>L.motion))o.mo=doc.mo;
   if(spills.length)o.spills=spills;return o;
 }
 function decodeProject(o){
@@ -1362,17 +1723,19 @@ function decodeProject(o){
     const d=fromB64(q.d);if(d.length!==sw*sh*4)continue;
     for(let j=0;j<sh;j++){const ty=sy+j;if(ty<0||ty>=h)continue;for(let i=0;i<sw;i++){const tx=sx+i;if(tx>=0&&tx<w)d.fill(0,(j*sw+i)*4,(j*sw+i)*4+4)}}
     spills.push({l,f,x:sx,y:sy,w:sw,h:sh,d})}catch{}}
-  return{name:typeof o.name==='string'?o.name:'',w,h,layers:o.layers,frames:o.frames,tags:Array.isArray(o.tags)?o.tags:[],cels,spills,palette:o.palette};
+  return{name:typeof o.name==='string'?o.name:'',w,h,layers:o.layers,frames:o.frames,tags:Array.isArray(o.tags)?o.tags:[],cels,spills,palette:o.palette,mo:o.mo};
 }
+function readMotion(m){if(!m||typeof m!=='object')return{};const vx=clamp(q4(+m.vx||0),-16,16),vy=clamp(q4(+m.vy||0),-16,16);return vx||vy?{motion:{vx,vy}}:{}}
 function applyDocData(d){
   const w=d.w|0,h=d.h|0;if(w<1||h<1||w>MAXS||h>MAXS)throw new Error('bad');
   const n=w*h*4;
   if(!d.layers.length||!d.frames.length||d.cels.length!==d.layers.length||d.cels.some(r=>r.length!==d.frames.length||r.some(a=>a.length!==n)))throw new Error('bad');
   const nf=d.frames.length,blends=BLENDS.map(b=>b[0]);
   const nd={w,h,cels:d.cels,
-    layers:d.layers.map(L=>({name:String(L.name||'Слой'),visible:L.visible!==false,opacity:clamp(+L.opacity>=0?+L.opacity:1,0,1),blend:blends.includes(L.blend)?L.blend:'source-over',lockAlpha:!!L.lockAlpha})),
+    layers:d.layers.map(L=>({name:String(L.name||'Слой'),visible:L.visible!==false,opacity:clamp(+L.opacity>=0?+L.opacity:1,0,1),blend:blends.includes(L.blend)?L.blend:'source-over',lockAlpha:!!L.lockAlpha,...readMotion(L.motion)})),
     frames:d.frames.map(F=>({dur:clamp((F.dur|0)||100,10,5000)})),
-    tags:(Array.isArray(d.tags)?d.tags:[]).map(t=>({name:String(t.name||'Анимация'),from:clamp(t.from|0,0,nf-1),to:clamp(t.to|0,0,nf-1),dir:['forward','reverse','pingpong'].includes(t.dir)?t.dir:'forward',color:/^#[0-9a-f]{6}$/i.test(t.color)?t.color:TAGC[0]})).filter(t=>t.to>=t.from)};
+    tags:(Array.isArray(d.tags)?d.tags:[]).map(t=>({name:String(t.name||'Анимация'),from:clamp(t.from|0,0,nf-1),to:clamp(t.to|0,0,nf-1),dir:['forward','reverse','pingpong'].includes(t.dir)?t.dir:'forward',color:/^#[0-9a-f]{6}$/i.test(t.color)?t.color:TAGC[0]})).filter(t=>t.to>=t.from),
+    mo:{wrap:!(d.mo&&d.mo.wrap===false),len:clamp((d.mo&&d.mo.len)|0,0,MO_MAX)}};
   doc=nd;
   if(Array.isArray(d.spills))for(const q of d.spills){const c=nd.cels[q.l]&&nd.cels[q.l][q.f];if(c)c.sp={x:q.x,y:q.y,w:q.w,h:q.h,d:q.d}}
   if(Array.isArray(d.palette)){const p=d.palette.filter(x=>/^#[0-9a-f]{6}$/i.test(x)).map(x=>x.toLowerCase());if(p.length)palette=[...new Set(p)]}
@@ -1649,11 +2012,7 @@ async function loadFileObj(f){
     else if(isImg(u))d=await imageFileToData(f,base);
     else{
       const o=JSON.parse(new TextDecoder().decode(buf));
-      if(o&&o.app==='pixelnya-backup'&&Array.isArray(o.works)){
-        const ws=o.works.map(w=>({name:String(w&&w.name||'Без названия'),d:decodeProject(w)}));
-        if(!ws.length){toast('В копии нет работ');return}
-        for(const w of ws)await createWork(w.name,w.d);
-        toast(`Восстановлено работ: ${ws.length}`);return}
+      if(o&&o.app==='pixelnya-backup'&&Array.isArray(o.works)){await restoreBackup(o);return}
       d=decodeProject(o);if(o.name)name=String(o.name)}
     await createWork(name,d);
     toast(d.notes&&d.notes.tilemap?'Открыто. Тайловые слои Aseprite пропущены':'Открыто и добавлено в Галерею');
@@ -1732,7 +2091,7 @@ function resizeDoc(W,H,anchor,scale){
       const si=(sy*ow+sx)*4,di=(y*W+x)*4;n[di]=c[si];n[di+1]=c[si+1];n[di+2]=c[si+2];n[di+3]=c[si+3]}return n}));
   doc.w=W;doc.h=H;sizeAux();
 }
-function sizeDialog(mode,first){
+function sizeDialog(mode,first,name){
   let m=mode||'new',W=doc.w,H=doc.h,anchor=4,scale=false;
   const presets=[8,16,24,32,48,64,128,256];
   const draw=()=>{
@@ -1752,7 +2111,7 @@ function sizeDialog(mode,first){
     $('#nh').oninput=e=>{H=clamp(Math.round(+e.target.value)||1,1,MAXS)};
     const sc=$('#nScale');if(sc)sc.onchange=()=>{scale=sc.checked;draw()};
     $('#nOk').onclick=()=>{closeModal();
-      if(m==='new'){newWork(W,H);return}
+      if(m==='new'){newWork(W,H,name);return}
       if(W===doc.w&&H===doc.h)return;docOp(()=>resizeDoc(W,H,anchor,scale));fitView()};
   };
   draw();
@@ -1760,17 +2119,23 @@ function sizeDialog(mode,first){
 $('#sizeBtn').onclick=()=>sizeDialog('resize');
 function showHelp(){showModal(`<h2>Жесты и клавиши</h2><dl class="keys">
   <dt>Два пальца</dt><dd>Масштаб и перемещение холста</dd>
-  <dt>Тап двумя</dt><dd>Отменить</dd><dt>Тап тремя</dt><dd>Повторить</dd><dt>Тап четырьмя</dt><dd>Спрятать окна и вернуть обратно. То же делает кнопка «Окна» внизу и клавиша Tab</dd>
+  <dt>Тап двумя</dt><dd>Отменить</dd><dt>Тап тремя</dt><dd>Повторить</dd><dt>Тап четырьмя</dt><dd>Спрятать окна и вернуть обратно. То же делает кнопка «Окна» внизу и клавиша Tab. Из режимов «Только рисунок» и «Только главное» возвращает всё</dd>
   <dt>Удержать палец</dt><dd>Пипетка, как в Procreate. Не отпуская, веди пальцем, чтобы выбрать точнее</dd>
   <dt>Один палец</dt><dd>Рисует, пока не коснёшься Pencil. После этого палец двигает холст, а рисует только стилус. Поменять можно в меню «Вид»</dd>
   <dt>Выделение</dt><dd>Потяни внутри выделения, чтобы сдвинуть его. Тап по выделению снимает его. Над холстом появляются кнопки «Снять выделение» и «Готово» (оно впечатывает сдвинутое)</dd>
   <dt>Лассо</dt><dd>Обведи объект с запасом: с включённым «Точно по объекту» выделится только он, без фона вокруг</dd>
   <dt>Край холста</dt><dd>Слой можно двигать за край холста. Что вышло за край, не пропадает: видно бледным силуэтом, и оно вернётся, если сдвинуть слой назад</dd>
+  <dt>Угол холста</dt><dd>Две кнопки слева внизу: «Только рисунок» прячет всё, «Только главное» оставляет инструменты и палитру. Нажми ещё раз — вернётся всё</dd>
+  <dt>Отразить вид</dt><dd>Клавиша F или кнопка внизу. Рисунок на экране зеркалится, чтобы взглянуть свежим глазом. Сам рисунок не меняется, рисовать можно как обычно</dd>
+  <dt>Тени и света</dt><dd>Полоска в окне «Выбор цвета»: оттенки от текущего цвета, тени холоднее, света теплее. «+» добавляет их в палитру</dd>
+  <dt>Пиксель-чек</dt><dd>Кнопка с лупой внизу: подсвечивает одиночные пиксели, лишние углы, неровные ступеньки, похожие цвета; есть просмотр в Ч/Б и силуэтом</dd>
+  <dt>Движение</dt><dd>Кнопка «Движение…» внизу: слой сам едет кадр за кадром, например облака. Видно при проигрывании и в GIF</dd>
+  <dt>Таймлапс</dt><dd>Файл → «Таймлапс этой работы»: ролик о том, как рисовалась работа, в GIF или видео</dd>
   <dt>Референс</dt><dd>Тяни за верхнюю полоску, размер меняй уголком. Внутри картинку двигают одним пальцем и масштабируют двумя. Удержание на ней берёт цвет</dd>
   <dt>B E G I L U O</dt><dd>Карандаш, ластик, заливка, пипетка, линия, прямоугольник, эллипс</dd>
   <dt>M Q W V T</dt><dd>Выделение, лассо, волшебная палочка, перемещение, текст</dd>
   <dt>⌘C ⌘X ⌘V</dt><dd>Копировать, вырезать, вставить</dd><dt>⌘A ⌘D</dt><dd>Выделить всё, снять выделение</dd>
-  <dt>Delete</dt><dd>Удалить выделенное</dd><dt>⇧H ⇧V</dt><dd>Отразить по горизонтали и вертикали</dd>
+  <dt>Delete</dt><dd>Удалить выделенное</dd><dt>F</dt><dd>Отразить вид</dd><dt>⇧H ⇧V</dt><dd>Отразить по горизонтали и вертикали</dd>
   <dt>Shift / Alt</dt><dd>С инструментами выделения: добавить или вычесть</dd>
   <dt>[ ]</dt><dd>Размер кисти</dd><dt>X</dt><dd>Поменять цвета</dd>
   <dt>, .</dt><dd>Предыдущий и следующий кадр</dd><dt>Enter</dt><dd>Проиграть анимацию</dd>
@@ -1782,14 +2147,48 @@ $('#fileBtn').onclick=()=>{
   showModal(`<h2>Файл</h2><div class="menu">
   <button class="btn" data-m="new">Новый холст…</button><button class="btn" data-m="size">Размер холста…</button>
   <button class="btn" data-m="open">Открыть файл… (.aseprite, проект или картинка)</button><button class="btn" data-m="save">Сохранить как… (PNG, GIF, Aseprite)</button>
-  <button class="btn" data-m="pal">Загрузить палитру (.hex, .gpl)…</button><button class="btn" data-m="help">Жесты и клавиши</button></div>
+  <button class="btn" data-m="tl">Таймлапс этой работы…</button><button class="btn" data-m="pal">Загрузить палитру (.hex, .gpl)…</button><button class="btn" data-m="help">Жесты и клавиши</button></div>
   <div class="actions"><button class="btn" data-close>Закрыть</button></div>`);
   $('#sheet').querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{const m=b.dataset.m;
-    if(m==='new')sizeDialog('new');else if(m==='size')sizeDialog('resize');else if(m==='save')exportDialog();else if(m==='help')showHelp();
+    if(m==='new')sizeDialog('new');else if(m==='size')sizeDialog('resize');else if(m==='tl'){if(cur)tlDialog(cur.id)}else if(m==='save')exportDialog();else if(m==='help')showHelp();
     else{closeModal();if(m==='open')openFile();else if(m==='pal')openPalette()}});
 };
 
 /* ---------- export ---------- */
+/* GIF собираем по кадру: сначала проходим все кадры и собираем цвета, потом кодируем. В памяти держим только сжатые байты */
+const xcv=document.createElement('canvas'),xctx=xcv.getContext('2d',{willReadFrequently:true});
+function frameData(f,s,k){composite(f,pctx,k);const w=doc.w*s,h=doc.h*s;if(xcv.width!==w||xcv.height!==h){xcv.width=w;xcv.height=h}
+  xctx.imageSmoothingEnabled=false;xctx.clearRect(0,0,w,h);xctx.drawImage(pcomp,0,0,w,h);return xctx.getImageData(0,0,w,h).data}
+async function encodeGIFAsync(n,get,w,h,delayOf,prog){
+  const keys=new Set(),tick=async v=>{if(prog)await prog(v)};let opaque=true;
+  for(let i=0;i<n;i++){const d=await get(i,true);for(let j=0;j<d.length;j+=4)if(d[j+3]>=128)keys.add((d[j]<<16)|(d[j+1]<<8)|d[j+2]);else opaque=false;if(i%8===7)await tick(i/n*.3)}
+  let q=k=>k;
+  if(keys.size>255)for(const bits of[6,5,4,3,2]){const m=(0xff<<(8-bits))&0xff,qq=k=>((((k>>16)&m)<<16)|(((k>>8)&m)<<8)|(k&m));const s=new Set();for(const k of keys)s.add(qq(k));if(s.size<=255){q=qq;break}}
+  const idx=new Map(),pal=[];for(const k of keys){const qk=q(k);if(!idx.has(qk)){idx.set(qk,pal.length+1);pal.push(qk)}}
+  let bits=1;while((1<<bits)<pal.length+1)bits++;const size=1<<bits,minCode=Math.max(2,bits);
+  const parts=[],head=[],b=v=>head.push(v),u16=(a,v)=>{a.push(v&255,(v>>8)&255)},str=t=>{for(const ch of t)head.push(ch.charCodeAt(0))};
+  str('GIF89a');u16(head,w);u16(head,h);b(0x80|((bits-1)<<4)|(bits-1));b(0);b(0);
+  for(let i=0;i<size;i++){if(i===0||i>pal.length){b(0);b(0);b(0)}else{const k=pal[i-1];b((k>>16)&255);b((k>>8)&255);b(k&255)}}
+  b(0x21);b(0xFF);b(11);str('NETSCAPE2.0');b(3);b(1);u16(head,0);b(0);parts.push(new Uint8Array(head));
+  /* непрозрачная картинка (например, небо с облаками): каждый следующий кадр хранит только прямоугольник, где что-то поменялось,
+     а неизменные пиксели внутри него прозрачны. Файл получается в разы меньше и собирается быстрее */
+  let prev=null;
+  for(let i=0;i<n;i++){const d=await get(i,false),o=[];let x0=0,y0=0,x1=w-1,y1=h-1;
+    if(opaque&&prev){x0=w;y0=h;x1=-1;y1=-1;
+      for(let y=0;y<h;y++)for(let x=0,j=y*w*4;x<w;x++,j+=4)if(d[j]!==prev[j]||d[j+1]!==prev[j+1]||d[j+2]!==prev[j+2]){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
+      if(x1<0){x0=y0=x1=y1=0}}
+    const fw=x1-x0+1,fh=y1-y0+1;
+    o.push(0x21,0xF9,4,((opaque?1:2)<<2)|1);u16(o,delayOf(i));o.push(0,0,0x2C);u16(o,x0);u16(o,y0);u16(o,fw);u16(o,fh);o.push(0);
+    const ind=new Uint8Array(fw*fh);
+    for(let y=0;y<fh;y++)for(let x=0;x<fw;x++){const j=((y+y0)*w+x+x0)*4;if(d[j+3]<128)continue;
+      if(opaque&&prev&&d[j]===prev[j]&&d[j+1]===prev[j+1]&&d[j+2]===prev[j+2])continue;
+      ind[y*fw+x]=idx.get(q((d[j]<<16)|(d[j+1]<<8)|d[j+2]))}
+    prev=d;
+    o.push(minCode);const data=lzw(ind,minCode);
+    for(let j=0;j<data.length;j+=255){const m=Math.min(255,data.length-j);o.push(m);for(let t=0;t<m;t++)o.push(data[j+t])}
+    o.push(0);parts.push(new Uint8Array(o));await tick(.3+.7*(i+1)/n)}
+  parts.push(new Uint8Array([0x3B]));return new Blob(parts,{type:'image/gif'})}
+let exProg=null;
 function frameCanvas(f,s){composite(f,pctx);const c=document.createElement('canvas');c.width=doc.w*s;c.height=doc.h*s;const x=c.getContext('2d',{willReadFrequently:true});x.imageSmoothingEnabled=false;x.drawImage(pcomp,0,0,c.width,c.height);return c}
 const toBlob=c=>new Promise(r=>c.toBlob(r,'image/png'));
 function lzw(ind,minCode){
@@ -1838,12 +2237,12 @@ function sheetRows(){
 function exInfo(){
   const s=st.ex.scale,w=doc.w*s,h=doc.h*s,tag=st.ex.scope==='all'?null:doc.tags[+st.ex.scope];
   if(st.ex.fmt==='png')return{w,h,n:1};
-  if(st.ex.fmt==='gif')return{w,h,n:tagSeq(tag).length};
+  if(st.ex.fmt==='gif')return{w,h,n:playSeq(tag).length};
   if(st.ex.fmt==='sheet'){const rows=sheetRows(),cols=Math.max(...rows.map(r=>r.length));return{w:cols*w,h:rows.length*h,n:rows.reduce((a,r)=>a+r.length,0)}}
   return null;
 }
 /* айпад не умеет рисовать холсты больше ~16 млн пикселей, а GIF держит все кадры в памяти */
-const exTooBig=i=>!!i&&(i.w*i.h>16e6||i.w>8192||i.h>8192||(st.ex.fmt==='gif'&&i.w*i.h*i.n>64e6));
+const exTooBig=i=>!!i&&(i.w*i.h>16e6||i.w>8192||i.h>8192||(st.ex.fmt==='gif'&&i.w*i.h*i.n>200e6));
 function exFileName(){
   const f=st.ex.fmt,b=safeName(st.ex.name);
   if(f==='ase')return b+'.aseprite';
@@ -1860,9 +2259,9 @@ async function buildExport(){
   if(fmt==='sheet'){const rows=sheetRows(),cols=Math.max(...rows.map(r=>r.length)),fw=doc.w*s,fh=doc.h*s;
     const c=document.createElement('canvas');c.width=cols*fw;c.height=rows.length*fh;const x=c.getContext('2d');
     rows.forEach((r,y)=>r.forEach((f,i)=>x.drawImage(frameCanvas(f,s),i*fw,y*fh)));return[await toBlob(c),name]}
-  const tag=st.ex.scope==='all'?null:doc.tags[+st.ex.scope],frames=[],delays=[];
-  for(const f of tagSeq(tag)){const c=frameCanvas(f,s);frames.push(c.getContext('2d').getImageData(0,0,c.width,c.height).data);delays.push(Math.max(2,Math.round(doc.frames[f].dur/10)))}
-  return[encodeGIF(frames,doc.w*s,doc.h*s,delays),name];
+  const tag=st.ex.scope==='all'?null:doc.tags[+st.ex.scope],seq=playSeq(tag);
+  const blob=await encodeGIFAsync(seq.length,(i,first)=>frameData(seq[i][0],first?1:s,seq[i][1]),doc.w*s,doc.h*s,i=>Math.max(2,Math.round(doc.frames[seq[i][0]].dur/10)),exProg);
+  return[blob,name];
 }
 function exportDialog(preset){
   if(st.playing)stopPlay();commitFloat();
@@ -1899,9 +2298,9 @@ function exportDialog(preset){
     let t;
     if(big)t='Слишком большая картинка: айпад не сможет её собрать. Выбери меньшее увеличение.';
     else if(f==='png')t=(n>1?`Сохранится кадр ${st.frame+1} из ${n}. `:'')+`Размер: ${i.w}×${i.h}.`;
-    else if(f==='gif')t=`Кадров в GIF: ${i.n}. Размер: ${i.w}×${i.h}.`;
-    else if(f==='sheet')t=`Кадров на листе: ${i.n}. Размер листа: ${i.w}×${i.h}.`;
-    else if(f==='ase')t=`Сохранятся слои, кадры, анимации и палитра (${plural(doc.layers.length,['слой','слоя','слоёв'])}, ${plural(n,['кадр','кадра','кадров'])}, ${plural(doc.tags.length,['анимация','анимации','анимаций'])}).`+(doc.layers.some(l=>l.lockAlpha)?' Блокировка прозрачности слоя в файле Aseprite не хранится.':'');
+    else if(f==='gif'){t=`Кадров в GIF: ${i.n}. Размер: ${i.w}×${i.h}.`;if(moActive()){const m=moInfo(tagSeq(st.ex.scope==='all'?null:doc.tags[+st.ex.scope]).length);t+=m.seamless?' Слои движутся, цикл бесшовный.':' Слои движутся.'}}
+    else if(f==='sheet')t=`Кадров на листе: ${i.n}. Размер листа: ${i.w}×${i.h}.`+(moActive()?' Движение слоёв на лист не попадает: только нарисованные кадры.':'');
+    else if(f==='ase')t=`Сохранятся слои, кадры, анимации и палитра (${plural(doc.layers.length,['слой','слоя','слоёв'])}, ${plural(n,['кадр','кадра','кадров'])}, ${plural(doc.tags.length,['анимация','анимации','анимаций'])}).`+(doc.layers.some(l=>l.motion)?' Движение слоёв в файл Aseprite не попадёт: чтобы сохранить его, преврати его в кадры (кнопка «Движение…» внизу).':'')+(doc.layers.some(l=>l.lockAlpha)?' Блокировка прозрачности слоя в файле Aseprite не хранится.':'');
     else t='Сохранится всё как есть. Открыть этот файл можно только в Пиксельне.';
     const el=$('#exInfo');el.classList.toggle('warn',big);el.innerHTML=esc(t)+(big?'':`<br>Получится файл: <b>${esc(exFileName())}</b>`);
     const go=$('#exGo');if(go)go.disabled=big;
@@ -1915,15 +2314,16 @@ function exportDialog(preset){
   $('#exName').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();e.target.blur();$('#exGo').click()}};
   $('#exGo').onclick=async()=>{
     const btn=$('#exGo');btn.disabled=true;btn.textContent='Готовлю…';
+    let lastP=0;exProg=async v=>{const now=performance.now();if(now-lastP>120){lastP=now;btn.textContent=`Готовлю… ${Math.round(v*100)}%`;await new Promise(r=>setTimeout(r,0))}};
     try{const[blob,name]=await buildExport();await offerFile(blob,name,st.ex.fmt==='png'||st.ex.fmt==='gif'||st.ex.fmt==='sheet')}catch(err){toast('Не получилось собрать файл')}
-    const g=$('#exGo');if(g){g.textContent='Создать файл';g.disabled=exTooBig(exInfo())}
+    exProg=null;const g=$('#exGo');if(g){g.textContent='Создать файл';g.disabled=exTooBig(exInfo())}
   };
   upd();
 }
 $('#exportBtn').onclick=()=>exportDialog();
 
 /* ---------- storage: IndexedDB, falls back to Claude storage ---------- */
-const VERSION='3.2';
+const VERSION='3.3';
 const IDB=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{try{const r=indexedDB.open('pixelnya',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}}));
   const run=async(mode,fn)=>{const db=await open();return new Promise((res,rej)=>{const t=db.transaction('kv',mode),q=fn(t.objectStore('kv'));t.oncomplete=()=>res(q.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})};
   return{get:k=>run('readonly',s=>s.get(k)),set:(k,v)=>run('readwrite',s=>s.put(v,k)),del:k=>run('readwrite',s=>s.delete(k))}})();
@@ -1938,7 +2338,7 @@ const projKey=id=>'pixelnya:p:'+id,thumbKey=id=>'pixelnya:t:'+id;
 const saveLib=()=>kvSet('pixelnya:lib',JSON.stringify(lib));
 async function loadLib(){
   try{const L=JSON.parse(await kvGet('pixelnya:lib')||'null');
-    if(L&&Array.isArray(L.items)){lib={v:1,cur:L.cur||null,lastBackup:+L.lastBackup||0,items:L.items.filter(i=>i&&typeof i.id==='string').map(i=>({id:i.id,name:String(i.name||'Без названия'),w:i.w|0,h:i.h|0,fr:i.fr|0,ly:i.ly|0,t:+i.t||0}))};return}}catch{}
+    if(L&&Array.isArray(L.items)){lib={v:1,cur:L.cur||null,lastBackup:+L.lastBackup||0,snooze:+L.snooze||0,firstSeen:+L.firstSeen||0,items:L.items.filter(i=>i&&typeof i.id==='string').map(i=>({id:i.id,name:String(i.name||'Без названия'),w:i.w|0,h:i.h|0,fr:i.fr|0,ly:i.ly|0,t:+i.t||0}))};return}}catch{}
   /* первый запуск новой версии: переносим единственную работу из старого хранилища */
   try{const old=await kvGet('pixelnya:project');
     if(old){const o=JSON.parse(old),id=uid();
@@ -1963,7 +2363,7 @@ async function saveNow(force){
 function showSaved(ok){const e=$('#stSave');if(!e)return;e.classList.toggle('bad',!ok);e.textContent=ok?'Сохранено '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'Не сохранено!'}
 const flushSave=()=>{clearTimeout(saveTimer);return saveNow()};
 function scheduleAutosave(){dirty=true;clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,1200)}
-function saveUI(){if(booted)kvSet('pixelnya:ui',JSON.stringify({grid:st.grid,gridN:st.gridN,gridZ:st.gridZ,bg:st.bg,tile:st.tile,prevScale:prev.scale,shape:st.shape,smart:st.smart,touch:st.touch,penSeen,ex:{fmt:st.ex.fmt,scale:st.ex.scale,layout:st.ex.layout},wins:WS}))}
+function saveUI(){if(booted)kvSet('pixelnya:ui',JSON.stringify({grid:st.grid,gridN:st.gridN,gridZ:st.gridZ,bg:st.bg,tile:st.tile,prevScale:prev.scale,shape:st.shape,smart:st.smart,mode:st.mode,ramp:st.ramp,tlOn:st.tlOn,daily:st.daily,touch:st.touch,penSeen,ex:{fmt:st.ex.fmt,scale:st.ex.scale,layout:st.ex.layout},wins:WS}))}
 function updateTitle(){const b=$('#nameBtn');if(b)b.textContent=cur?cur.name:'Пиксельня'}
 function resetHistory(){undoStack.length=0;redoStack.length=0;updateUndoUI()}
 function enterWork(item,d){
@@ -1976,7 +2376,7 @@ async function createWork(name,d){
   enterWork(item,d);lib.items.unshift(item);await saveNow(true);
 }
 const blankData=(w,h)=>({w,h,layers:[newLayer('Слой 1')],frames:[{dur:100}],tags:[],cels:[[new Uint8ClampedArray(w*h*4)]],palette:null});
-const newWork=(W,H)=>createWork('Без названия',blankData(W,H));
+const newWork=(W,H,name)=>createWork(name||'Без названия',blankData(W,H));
 async function openWork(id){
   const item=lib.items.find(i=>i.id===id);if(!item||(cur&&cur.id===id))return;
   commitFloat();await flushSave();if(st.playing)stopPlay();
@@ -2000,7 +2400,7 @@ function confirmDelete(id){
   showModal(`<h2>Удалить «${esc(item.name)}»?</h2><p>Работа исчезнет из Галереи насовсем, вернуть её не получится. Если она нужна, сначала сохрани файл.</p><div class="actions"><button class="btn" id="dNo">Не удалять</button><button class="btn primary" id="dYes">Удалить</button></div>`);
   $('#dNo').onclick=()=>galleryDialog();
   $('#dYes').onclick=async()=>{
-    const wasCur=!!cur&&cur.id===id;lib.items=lib.items.filter(i=>i.id!==id);await kvDel(projKey(id));await kvDel(thumbKey(id));
+    const wasCur=!!cur&&cur.id===id;lib.items=lib.items.filter(i=>i.id!==id);await kvDel(projKey(id));await kvDel(thumbKey(id));await tlClear(id);
     if(wasCur){cur=null;lib.cur=null;clearTimeout(saveTimer);dirty=false;updateTitle()}
     await saveLib();
     if(wasCur){closeModal();const next=[...lib.items].sort((a,b)=>b.t-a.t)[0];if(next)await openWork(next.id);else sizeDialog('new',true)}
@@ -2012,33 +2412,167 @@ async function backupDialog(){
   await flushSave();const n=lib.items.length;
   showModal(`<h2>Копия всех работ</h2>
   <p>Одним файлом сохранится всё, что лежит в Галерее (${plural(n,['работа','работы','работ'])}). Положи его в iCloud Drive или отправь себе: это страховка на случай, если память браузера очистится.</p>
-  <p class="hint">Вернуть работы: Файл → Открыть файл, и выбрать этот файл. Они добавятся к тем, что уже есть.</p>
+  <label class="check"><input type="checkbox" id="bkSet" checked> Вместе с референсами и настройками окон</label>
+  <label class="check"><input type="checkbox" id="bkTl" checked> Вместе с таймлапсами (файл станет больше)</label>
+  <p class="hint">Вернуть работы: кнопка «Восстановить из копии» ниже или Файл → Открыть файл. Работы, которые уже есть в Галерее, второй раз не добавятся.</p>
   <div id="exOut"></div>
-  <div class="actions"><button class="btn" id="bkBack">Назад</button><button class="btn primary" id="bkGo" ${n?'':'disabled'}>Сделать копию</button></div>`);
+  <div class="actions"><button class="btn" id="bkBack">Назад</button><button class="btn" id="bkLoad">Восстановить из копии…</button><button class="btn primary" id="bkGo" ${n?'':'disabled'}>Сделать копию</button></div>`);
   $('#bkBack').onclick=galleryDialog;
-  $('#bkGo').onclick=async()=>{const btn=$('#bkGo');btn.disabled=true;btn.textContent='Собираю…';
+  $('#bkLoad').onclick=()=>{closeModal();pickFile('',loadFileObj)};
+  $('#bkGo').onclick=async()=>{const btn=$('#bkGo');btn.disabled=true;btn.textContent='Собираю…';const withSet=$('#bkSet').checked,withTl=$('#bkTl').checked;
     try{
       const works=[];
-      for(const it of [...lib.items].sort((a,b)=>a.t-b.t)){const raw=await kvGet(projKey(it.id));if(!raw)continue;try{const o=JSON.parse(raw);o.name=it.name;works.push(o)}catch{}}
+      for(const it of [...lib.items].sort((a,b)=>a.t-b.t)){const raw=await kvGet(projKey(it.id));if(!raw)continue;
+        try{const o=JSON.parse(raw);o.name=it.name;o.t=it.t;if(withTl){const tl=await tlExport(it.id);if(tl)o.tl=tl}works.push(o)}catch{}}
       if(!works.length){toast('Пока нечего сохранять');btn.disabled=false;btn.textContent='Сделать копию';return}
-      const blob=new Blob([JSON.stringify({app:'pixelnya-backup',v:1,saved:Date.now(),works})],{type:'application/json'});
+      const b={app:'pixelnya-backup',v:2,saved:Date.now(),works};
+      if(withSet){try{const u=await kvGet('pixelnya:ui');if(u)b.ui=JSON.parse(u)}catch{}try{const r=await kvGet('pixelnya:refs');if(r)b.refs=JSON.parse(r)}catch{}}
+      const blob=new Blob([JSON.stringify(b)],{type:'application/json'});
       const d=new Date(),pad=v=>String(v).padStart(2,'0');
       await offerFile(blob,`pixelnya-kopiya-${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}.json`,false);
-      lib.lastBackup=Date.now();saveLib();
+      lib.lastBackup=Date.now();lib.snooze=0;saveLib();checkNudge();
     }catch{toast('Не получилось собрать копию')}
     if($('#bkGo')){btn.disabled=false;btn.textContent='Сделать ещё раз'}};
 }
+/* одинаковые работы при восстановлении не дублируем: сравниваем само содержимое, а не название */
+function projSig(o){const s=JSON.stringify([o.w,o.h,o.layers,o.frames,o.tags,o.cels,o.spills||null,o.palette||null,o.mo||null]);let h1=0x811c9dc5,h2=0;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);h1=Math.imul(h1^c,16777619);h2=(Math.imul(h2,31)+c)|0}return s.length+':'+(h1>>>0)+':'+(h2>>>0)}
+async function restoreBackup(o){
+  const fresh=!lib.items.length,sigs=new Map();
+  for(const it of lib.items){try{const raw=await kvGet(projKey(it.id));if(raw){const q=JSON.parse(raw);const k=projSig(q);sigs.set(k,true)}}catch{}}
+  let added=0,same=0,bad=0;
+  for(const w of o.works){try{
+    if(sigs.has(projSig(w))){same++;continue}
+    const d=decodeProject(w);await createWork(String(w.name||'Без названия'),d);const item=cur;added++;sigs.set(projSig(w),true);
+    if(+w.t>0){item.t=+w.t;await saveLib()}
+    if(w.tl)await tlImport(item.id,w.tl);
+  }catch{bad++}}
+  if(o.refs&&Array.isArray(o.refs)&&!refs.length){try{o.refs.forEach(r=>addRef(r,true));saveRefsNow()}catch{}}
+  if(fresh&&o.ui&&typeof o.ui==='object'){try{readUI(o.ui);if(o.ui.wins)for(const[id]of WINS)if(o.ui.wins[id]){WS[id]={...WS[id],...o.ui.wins[id]};placeWin(id)}
+    setMode(o.ui.mode,true);syncViewBtns();renderOptions();renderRamp(true);saveUI()}catch{}}
+  if(added){const newest=[...lib.items].sort((a,b)=>b.t-a.t)[0];if(newest&&cur&&newest.id!==cur.id)await openWork(newest.id)}
+  toast(added?`Восстановлено: ${plural(added,['работа','работы','работ'])}`+(same?`. Уже были в Галерее: ${same}`:''):same?`Все работы из копии уже есть в Галерее (${same})`:'В копии нет работ');
+}
+/* мягкое напоминание о копии: если её давно не было, а работы менялись. «Позже» откладывает на три дня */
+function backupDue(){const now=Date.now(),D=864e5;if(!lib.items.length||(lib.snooze||0)>now)return false;
+  if(!lib.lastBackup)return now-(lib.firstSeen||now)>3*D;
+  return now-lib.lastBackup>7*D&&lib.items.some(i=>i.t>lib.lastBackup)}
+function checkNudge(){const e=$('#nudge');if(e)e.hidden=!backupDue()}
+$('#nudge').addEventListener('pointerdown',e=>e.stopPropagation());
+$('#nuYes').onclick=()=>{$('#nudge').hidden=true;backupDialog()};
+$('#nuNo').onclick=()=>{lib.snooze=Date.now()+3*864e5;saveLib();$('#nudge').hidden=true};
+/* ---------- таймлапс ----------
+   После каждого изменения (с паузой) запоминаем, как выглядит текущий кадр. Каждый снимок сжат и лежит отдельно,
+   поэтому запись не мешает рисовать. Когда снимков больше 400, выкидываем каждый второй: ролик всегда охватывает всю работу */
+const TL_MAX=400,tlKey=id=>'pixelnya:tl:'+id,tfKey=(id,n)=>'pixelnya:tf:'+id+':'+n,tlIdx=new Map();
+let tlTimer=null,tlBusy=false;
+function fnv32(u8){let h=0x811c9dc5;for(let i=0;i<u8.length;i++)h=Math.imul(h^u8[i],16777619);return h>>>0}
+async function tlIndex(id){let ix=tlIdx.get(id);if(ix)return ix;try{ix=JSON.parse(await kvGet(tlKey(id))||'null')}catch{ix=null}
+  if(!ix||!Array.isArray(ix.ids))ix={ids:[],next:0,last:0,t0:0};tlIdx.set(id,ix);return ix}
+function tlNote(){if(!st.tlOn||!cur||!booted)return;clearTimeout(tlTimer);tlTimer=setTimeout(tlCapture,800)}
+async function tlCapture(){
+  tlTimer=null;if(!cur||!st.tlOn)return;if(tlBusy||st.playing||stroke){tlNote();return}tlBusy=true;
+  try{const id=cur.id,w=doc.w,h=doc.h;composite(st.frame,pctx);const raw=new Uint8Array(pctx.getImageData(0,0,w,h).data.buffer);
+    const hs=(fnv32(raw)^Math.imul(w,65537)^h)>>>0,ix=await tlIndex(id);if(ix.last===hs)return;
+    const z=await deflateZ(raw),n=ix.next;
+    if(!await kvSet(tfKey(id,n),{w,h,t:Date.now(),z:!!z,d:z||raw}))return;
+    ix.next=n+1;ix.ids.push(n);ix.last=hs;if(!ix.t0)ix.t0=Date.now();
+    if(ix.ids.length>TL_MAX){const keep=[],drop=[];ix.ids.forEach((v,i)=>((i%2===0||i===ix.ids.length-1)?keep:drop).push(v));ix.ids=keep;for(const v of drop)kvDel(tfKey(id,v))}
+    await kvSet(tlKey(id),JSON.stringify(ix));
+  }catch{}finally{tlBusy=false}}
+async function tlClear(id){const ix=await tlIndex(id);for(const v of ix.ids)await kvDel(tfKey(id,v));await kvDel(tlKey(id));tlIdx.delete(id)}
+async function tlRecords(id){const ix=await tlIndex(id),out=[];for(const v of ix.ids){const r=await kvGet(tfKey(id,v));if(r&&r.d&&r.w&&r.h)out.push(r)}return out}
+async function tlUnpack(r){const d=r.d instanceof Uint8Array?r.d:new Uint8Array(r.d);const u=r.z?await inflateZ(d):d;return new Uint8ClampedArray(u.buffer,u.byteOffset,u.byteLength)}
+async function tlExport(id){const ix=await tlIndex(id);if(!ix.ids.length)return null;const recs=await tlRecords(id);
+  return{t0:ix.t0,frames:recs.map(r=>({w:r.w,h:r.h,t:r.t,z:!!r.z,d:toB64(r.d instanceof Uint8Array?r.d:new Uint8Array(r.d))}))}}
+async function tlImport(id,tl){if(!tl||!Array.isArray(tl.frames))return;const ix={ids:[],next:0,last:0,t0:+tl.t0||0};
+  for(const f of tl.frames){try{const w=f.w|0,h=f.h|0;if(w<1||h<1||w>MAXS||h>MAXS)continue;const d=new Uint8Array(fromB64(f.d).buffer);
+    if(await kvSet(tfKey(id,ix.next),{w,h,t:+f.t||0,z:!!f.z,d})){ix.ids.push(ix.next);ix.next++}}catch{}}
+  tlIdx.set(id,ix);await kvSet(tlKey(id),JSON.stringify(ix))}
+/* какие снимки попадут в ролик: равномерно по всей записи, первый и последний всегда */
+function tlPick(n,want){if(n<=want)return[...Array(n).keys()];const o=[];for(let i=0;i<want;i++)o.push(Math.round(i*(n-1)/(want-1)));return o}
+const TL_FPS=10;
+async function tlDialog(id){
+  const item=lib.items.find(i=>i.id===id);if(!item)return;if(cur&&cur.id===id){await flushSave();if(tlTimer){clearTimeout(tlTimer);await tlCapture()}}
+  const recs=await tlRecords(id),n=recs.length;
+  const W=recs.reduce((a,r)=>Math.max(a,r.w),1),H=recs.reduce((a,r)=>Math.max(a,r.h),1);
+  const o={len:5,hold:true,scale:Math.max(1,Math.min(8,Math.floor(720/Math.max(W,H))||1))};
+  let timer=null;const stop=()=>{clearTimeout(timer);timer=null};
+  const ix=await tlIndex(id),since=ix.t0?new Date(ix.t0).toLocaleDateString('ru-RU',{day:'numeric',month:'long'}):'';
+  const vidType=(()=>{try{if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream)return'';return['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm'].find(t=>MediaRecorder.isTypeSupported(t))||''}catch{return''}})();
+  showModal(`<h2>Таймлапс: ${esc(item.name)}</h2>
+  ${n>=2?`<div class="mvprev"><canvas id="tlCv"></canvas></div>
+  <p class="hint">Записано шагов: ${n}${since?', с '+since:''}. Пиксельня тихо запоминает рисунок после каждого штриха.</p>
+  <div class="seg"><span class="lbl">Длина ролика</span>${[3,5,10,15].map(v=>`<button class="btn small" data-tlen="${v}">${v} с</button>`).join('')}</div>
+  <label>Увеличить <select class="field" id="tlScale">${[1,2,3,4,6,8].map(v=>`<option value="${v}">×${v} · ${W*v}×${H*v}</option>`).join('')}</select></label>
+  <label class="check"><input type="checkbox" id="tlHold" checked> В конце 2 секунды показать готовый рисунок</label>
+  <div class="actions"><button class="btn" id="tlDel">Стереть запись…</button>${vidType?'<button class="btn" id="tlVid">Видео</button>':''}<button class="btn primary" id="tlGif">GIF</button></div>
+  <div id="exOut"></div>`:`<p>Пока записано слишком мало. Таймлапс собирается сам, пока ты рисуешь: загляни сюда позже.</p>`}
+  <label class="check"><input type="checkbox" id="tlOn" ${st.tlOn?'checked':''}> Записывать таймлапс во всех работах</label>
+  <div class="actions"><button class="btn" data-close>Закрыть</button></div>`,stop);
+  $('#tlOn').onchange=e=>{st.tlOn=e.target.checked;saveUI();toast(st.tlOn?'Запись таймлапса включена':'Запись таймлапса выключена. Уже записанное осталось')};
+  if(n<2)return;
+  const cv=$('#tlCv'),cx=cv.getContext('2d'),fit=Math.min(380/W,220/H),sc=fit>=1?Math.min(8,Math.floor(fit)):fit;
+  cv.width=W;cv.height=H;cv.style.width=Math.round(W*sc)+'px';cv.style.height=Math.round(H*sc)+'px';
+  const plan=()=>{const want=Math.max(2,o.len*TL_FPS),pick=tlPick(n,want),per=Math.max(20,Math.round(o.len*1000/pick.length));
+    return{pick,delay:i=>i===pick.length-1&&o.hold?per+2000:per}};
+  const frameAt=async(r,s)=>{const d=await tlUnpack(r);
+    const c=document.createElement('canvas');c.width=W*s;c.height=H*s;const x=c.getContext('2d',{willReadFrequently:true});x.imageSmoothingEnabled=false;
+    const src=document.createElement('canvas');src.width=r.w;src.height=r.h;src.getContext('2d').putImageData(new ImageData(d,r.w,r.h),0,0);
+    x.drawImage(src,0,0,r.w*s,r.h*s);return{c,x}};
+  let k=0;const play=()=>{stop();const p=plan();const step=async()=>{const i=k%p.pick.length;const{c}=await frameAt(recs[p.pick[i]],1);if(!$('#tlCv'))return;cx.clearRect(0,0,W,H);cx.drawImage(c,0,0);timer=setTimeout(()=>{k++;step()},p.delay(i))};step()};
+  const sync=()=>{$('#sheet').querySelectorAll('[data-tlen]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.tlen===o.len));$('#tlScale').value=String(o.scale);$('#tlHold').checked=o.hold};
+  $('#sheet').querySelectorAll('[data-tlen]').forEach(b=>b.onclick=()=>{o.len=+b.dataset.tlen;sync();k=0;play()});
+  $('#tlScale').onchange=e=>{o.scale=+e.target.value};$('#tlHold').onchange=e=>{o.hold=e.target.checked};
+  const base=safeName(item.name)+'_timelapse';
+  $('#tlGif').onclick=async()=>{const btn=$('#tlGif');btn.disabled=true;btn.textContent='Готовлю…';
+    try{const p=plan(),s=o.scale;let lastP=0;
+      const blob=await encodeGIFAsync(p.pick.length,async(i,first)=>{const{x,c}=await frameAt(recs[p.pick[i]],first?1:s);return x.getImageData(0,0,c.width,c.height).data},W*s,H*s,i=>Math.max(2,Math.round(p.delay(i)/10)),
+        async v=>{const now=performance.now();if(now-lastP>120){lastP=now;btn.textContent=`Готовлю… ${Math.round(v*100)}%`;await new Promise(r=>setTimeout(r,0))}});
+      await offerFile(blob,base+'.gif',true)}catch{toast('Не получилось собрать GIF')}
+    const g=$('#tlGif');if(g){g.disabled=false;g.textContent='GIF'}};
+  const vb=$('#tlVid');if(vb)vb.onclick=async()=>{const btn=vb;btn.disabled=true;
+    try{const p=plan(),s=Math.max(1,o.scale),cw=Math.round(W*s/2)*2||2,ch=Math.round(H*s/2)*2||2;
+      const c=document.createElement('canvas');c.width=cw;c.height=ch;const x=c.getContext('2d');x.imageSmoothingEnabled=false;
+      const stream=c.captureStream(30),rec=new MediaRecorder(stream,{mimeType:vidType,videoBitsPerSecond:6e6}),chunks=[];
+      rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};const done=new Promise(r=>rec.onstop=r);
+      const draw=async r=>{const{c:fc}=await frameAt(r,s);x.fillStyle='#fff';x.fillRect(0,0,cw,ch);x.drawImage(fc,0,0)};
+      await draw(recs[p.pick[0]]);rec.start(200);const total=p.pick.reduce((a,_,i)=>a+p.delay(i),0);let t0=performance.now();
+      for(let i=0;i<p.pick.length;i++){const t=performance.now();await draw(recs[p.pick[i]]);btn.textContent=`Записываю… ${Math.max(0,Math.ceil((total-(t-t0))/1000))} с`;
+        let left=p.delay(i)-(performance.now()-t);while(left>0){await new Promise(r=>setTimeout(r,Math.min(100,left)));x.drawImage(c,0,0);left=p.delay(i)-(performance.now()-t)}}
+      rec.stop();await done;const blob=new Blob(chunks,{type:vidType.split(';')[0]});
+      await offerFile(blob,base+(vidType.includes('mp4')?'.mp4':'.webm'),false)}catch{toast('Видео не получилось. Сохрани GIF')}
+    btn.disabled=false;btn.textContent='Видео'};
+  $('#tlDel').onclick=()=>{stop();showModal(`<h2>Стереть запись таймлапса?</h2><p>Сама работа останется. Пропадут только записанные шаги (${n}).</p><div class="actions"><button class="btn" id="tdNo">Не стирать</button><button class="btn primary" id="tdYes">Стереть</button></div>`);
+    $('#tdNo').onclick=()=>tlDialog(id);$('#tdYes').onclick=async()=>{await tlClear(id);closeModal();toast('Запись стёрта. Новая начнётся со следующего штриха')}};
+  sync();play();
+}
+/* ---------- тема дня и серия дней ----------
+   Без давления: никаких уведомлений и «потерянных» серий. Показываем тему, серию подряд и сколько всего дней рисовала */
+const THEMES=['Маяк','Кот на подоконнике','Гриб после дождя','Чашка какао','Старый ключ','Лиса в снегу','Кактус в горшке','Ночной город','Сундук с сокровищами','Уличный фонарь','Бабочка','Ракета','Замок на холме','Медуза','Осенний лист','Маленькая кофейня','Дракончик','Зонтик под дождём','Луна над морем','Велосипед','Сова','Пирожное','Кристалл','Скалы и волны','Трамвай','Робот','Улитка','Свеча','Лягушка на кувшинке','Горы на закате','Аквариум','Книжная полка','Пингвин','Подсолнух','Космонавт','Облачный замок','Мельница','Рыбацкая лодка','Чайник','Ёжик','Волшебное зелье','Палатка у костра','Сакура','Кит','Гитара','Меч в камне','Щит рыцаря','Тыква','Снеговик','Арбуз','Радуга','Бумажный самолётик','Песочные часы','Подводная лодка','Колодец','Вулкан','Енот','Воздушный шар','Пустыня и кактусы','Пончик','Лампа джинна','Компас','Карусель','Котелок с супом','Цветочная лавка','Мост над рекой','Шахматный конь','Пчела','Остров с пальмой','Северное сияние','Деревянный домик','Старый компьютер','Дождь за окном','Яблоко','Фея','Гном с фонарём','Ледяная пещера','Тролль под мостом','Фламинго','Космическая станция','Грибная деревня','Летучая мышь','Пирог','Лесное озеро','Почтовый ящик','Телескоп','Капибара','Большая волна','Улитка-почтальон','Морская звезда','Старый автобус','Лабиринт','Кузница','Рыцарский шлем','Хомяк','Ночная пустыня','Маленький магазинчик','Фонтан','Замёрзшее озеро','Лестница в небо','Город на черепахе','Секретная дверь','Таинственный лес','Перо и чернильница','Сломанный робот','Песочный замок','Лисья нора','Сонный кот','Автопортрет','Любимый фрукт','Погода за окном','Что-то синее','Что-то крошечное','Вид из окна','Предмет со стола','Любимая игрушка','Завтрак','Дорога домой','Тайный сад'];
+const dayNo=(t=Date.now())=>{const d=new Date(t);return Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/864e5)};
+function themeToday(){const D=dayNo(),k=st.daily.day===D?st.daily.shift|0:0;return THEMES[((D*47+k*13)%THEMES.length+THEMES.length)%THEMES.length]}
+let days=[],daysLoaded=false;
+async function loadDays(){try{const a=JSON.parse(await kvGet('pixelnya:days')||'[]');if(Array.isArray(a))days=a.filter(x=>Number.isInteger(x)).sort((a,b)=>a-b)}catch{}daysLoaded=true}
+function markDay(){if(!daysLoaded||!booted)return;const D=dayNo();if(days[days.length-1]===D)return;days.push(D);if(days.length>1000)days=days.slice(-1000);kvSet('pixelnya:days',JSON.stringify(days))}
+function streakInfo(){const D=dayNo(),set=new Set(days);let s=0,d=set.has(D)?D:D-1;while(set.has(d)){s++;d--}return{streak:s,total:days.length,today:set.has(D)}}
+function dailyHtml(){if(!st.daily.on)return'';const{streak,total}=streakInfo();
+  const sk=streak>=2?`${icon('flame')} ${plural(streak,['день','дня','дней'])} подряд`:total?`Дней с рисованием: ${total}`:'';
+  return`<div class="daily"><div class="dtheme"><small>Тема дня</small><b id="dyTheme">${esc(themeToday())}</b></div><button class="btn small" id="dyGo">Нарисовать</button><button class="btn small" id="dyNext">Другая тема</button><span class="grow"></span><span class="dstreak" id="dyStreak">${sk}</span><button class="wbtn" id="dyHide" title="Спрятать тему дня (вернуть: меню Вид)" aria-label="Спрятать тему дня">✕</button></div>`}
+function wireDaily(){const go=$('#dyGo');if(!go)return;
+  go.onclick=()=>sizeDialog('new',false,'Тема дня: '+themeToday());
+  $('#dyNext').onclick=()=>{const D=dayNo();st.daily={on:true,day:D,shift:(st.daily.day===D?(st.daily.shift|0):0)+1};saveUI();$('#dyTheme').textContent=themeToday()};
+  $('#dyHide').onclick=()=>{st.daily.on=false;saveUI();const e=$('#sheet .daily');if(e)e.remove();toast('Тема дня спрятана. Вернуть: меню «Вид»')}}
 function workMenu(id){
   const item=lib.items.find(i=>i.id===id);if(!item)return;
-  showModal(`<h2>${esc(item.name)}</h2><div class="menu"><button class="btn" data-w="open">Открыть</button><button class="btn" data-w="ren">Переименовать…</button><button class="btn" data-w="dup">Сделать копию</button><button class="btn" data-w="del">Удалить…</button></div><div class="actions"><button class="btn" data-w="back">Назад в Галерею</button></div>`);
+  showModal(`<h2>${esc(item.name)}</h2><div class="menu"><button class="btn" data-w="open">Открыть</button><button class="btn" data-w="ren">Переименовать…</button><button class="btn" data-w="dup">Сделать копию</button><button class="btn" data-w="tl">Таймлапс…</button><button class="btn" data-w="del">Удалить…</button></div><div class="actions"><button class="btn" data-w="back">Назад в Галерею</button></div>`);
   $('#sheet').querySelectorAll('[data-w]').forEach(b=>b.onclick=async()=>{const a=b.dataset.w;
-    if(a==='open'){closeModal();await openWork(id)}else if(a==='ren')renameWork(id,galleryDialog);else if(a==='dup'){await dupWork(id);galleryDialog()}else if(a==='del')confirmDelete(id);else galleryDialog()});
+    if(a==='open'){closeModal();await openWork(id)}else if(a==='ren')renameWork(id,galleryDialog);else if(a==='dup'){await dupWork(id);galleryDialog()}else if(a==='tl')tlDialog(id);else if(a==='del')confirmDelete(id);else galleryDialog()});
 }
 async function galleryDialog(){
   await flushSave();
   const items=[...lib.items].sort((a,b)=>b.t-a.t),thumbs=await Promise.all(items.map(i=>kvGet(thumbKey(i.id))));
   const date=t=>t?new Date(t).toLocaleDateString('ru-RU',{day:'numeric',month:'short'}):'';
-  showModal(`<h2>Галерея</h2><div class="gal"><button class="gcard gnew" data-gnew aria-label="Новая работа"><span>＋</span><b>Новая работа</b></button>${
+  showModal(`<h2>Галерея</h2>${dailyHtml()}<div class="gal"><button class="gcard gnew" data-gnew aria-label="Новая работа"><span>＋</span><b>Новая работа</b></button>${
     items.map((i,k)=>`<div class="gcard${cur&&cur.id===i.id?' on':''}"><button class="gopen" data-gopen="${esc(i.id)}"><span class="gth">${typeof thumbs[k]==='string'&&thumbs[k].startsWith('data:image/')?`<img alt="" src="${thumbs[k]}">`:''}</span><b>${esc(i.name)}</b><small>${i.w}×${i.h} · кадров: ${i.fr||1} · ${date(i.t)}</small></button><button class="btn small icon gmore" data-gmore="${esc(i.id)}" aria-label="Действия с работой">⋯</button></div>`).join('')}
   </div><p class="fine">${lib.lastBackup?'Копия всех работ: '+new Date(lib.lastBackup).toLocaleDateString('ru-RU',{day:'numeric',month:'long'}):'Копию всех работ ещё не делали. Лучше сделать: кнопка ниже.'} · Пиксельня ${VERSION}</p>
   <div class="actions"><button class="btn" id="gBackup">Копия всех работ…</button><button class="btn" id="gFile">Открыть файл…</button><button class="btn primary" data-close>Закрыть</button></div>`,null,'wide');
@@ -2047,7 +2581,7 @@ async function galleryDialog(){
   sh.querySelectorAll('[data-gopen]').forEach(b=>b.onclick=async()=>{closeModal();await openWork(b.dataset.gopen)});
   sh.querySelectorAll('[data-gmore]').forEach(b=>b.onclick=()=>workMenu(b.dataset.gmore));
   $('#gFile').onclick=()=>{closeModal();openFile()};
-  $('#gBackup').onclick=backupDialog;
+  $('#gBackup').onclick=backupDialog;wireDaily();
 }
 $('#galBtn').onclick=galleryDialog;
 $('#nameBtn').onclick=()=>{if(cur)renameWork(cur.id)};
@@ -2137,8 +2671,10 @@ function defaultWins(){
 }
 /* Окно целиком держится в видимой области. Окна у правого края «прилипают» к нему при повороте экрана. */
 function placeWin(id){
-  const el=winEl(id),s=WS[id];if(!s)return;el.hidden=!!s.hid;if(s.hid){if(id==='winPrev')syncPrev();return}
-  el.classList.toggle('collapsed',!!s.col);el.querySelector('[data-collapse]').textContent=s.col?'+':'–';
+  const el=winEl(id),s=WS[id];if(!s)return;const forced=st.mode==='mini'&&(id==='winTools'||id==='winPal');
+  el.hidden=!!s.hid&&!forced;if(s.hid&&!forced){if(id==='winPrev')syncPrev();return}
+  if(modeHides(id)){if(id==='winPrev')syncPrev();return}
+  el.classList.toggle('collapsed',!!s.col&&!forced);el.querySelector('[data-collapse]').textContent=s.col?'+':'–';
   const S=stage.getBoundingClientRect(),w=el.offsetWidth,h=el.offsetHeight;
   if(s.side==='r'&&s.ro!=null)s.x=S.width-w-s.ro;
   s.x=clamp(s.x,0,Math.max(0,S.width-w));s.y=clamp(s.y,0,Math.max(0,S.height-h));el.style.left=s.x+'px';el.style.top=s.y+'px';
@@ -2161,6 +2697,8 @@ function initWins(saved){
   }
   if(!saved||!saved.winLayers){const d2=defaultWins();WS.winLayers.y=d2.winLayers.y}
   for(const[id]of WINS)placeWin(id);
+  {const c=WS.winColor,l=WS.winLayers,ce=winEl('winColor'),le=winEl('winLayers');
+    if(c&&l&&!c.hid&&!l.hid&&!c.col&&c.side===l.side&&l.y>=c.y){const cb=c.y+ce.offsetHeight;if(l.y<cb+4){l.y=cb+8;placeWin('winLayers')}}}
 }
 const prev={scale:2,play:false,timer:null,idx:0,list:[],el:null,cv:$('#prevCv')};
 function prevScale(){return Math.max(1,Math.min(prev.scale,Math.floor(240/Math.max(doc.w,doc.h))||1))}
@@ -2173,27 +2711,30 @@ function togglePreview(on){const s=WS.winPrev;s.hid=on==null?!s.hid:!on;if(!s.hi
 function drawPrevFrom(src){const c=prev.cv;if(!c)return;const s=prevScale(),w=doc.w*s,h=doc.h*s;
   if(c.width!==w||c.height!==h){c.width=w;c.height=h;c.style.width=w+'px';c.style.height=h+'px'}
   const x=c.getContext('2d');x.imageSmoothingEnabled=false;x.clearRect(0,0,w,h);x.drawImage(src,0,0,w,h)}
-function drawPrevNow(f){composite(f??st.frame,pctx);drawPrevFrom(pcomp)}
-function startPrevPlay(){prev.list=tagSeq(doc.tags[st.activeTag]);if(prev.list.length<2){toast('Добавь хотя бы два кадра');return}prev.play=true;prev.idx=0;setPrevBtn();const step=()=>{if(!prev.play)return;const f=prev.list[prev.idx%prev.list.length];drawPrevNow(f);prev.timer=setTimeout(()=>{prev.idx++;if(prev.idx%prev.list.length===0)prev.list=tagSeq(doc.tags[st.activeTag]);step()},doc.frames[f]?.dur||100)};step()}
+function drawPrevNow(f,k){composite(f??st.frame,pctx,k||0);drawPrevFrom(pcomp)}
+function startPrevPlay(){prev.list=playSeq(doc.tags[st.activeTag]);if(prev.list.length<2){toast('Добавь хотя бы два кадра или задай слоям движение');return}prev.play=true;prev.idx=0;setPrevBtn();const step=()=>{if(!prev.play)return;const[f,k]=prev.list[prev.idx%prev.list.length];drawPrevNow(f,k);prev.timer=setTimeout(()=>{prev.idx++;if(prev.idx%prev.list.length===0)prev.list=playSeq(doc.tags[st.activeTag]);step()},doc.frames[f]?.dur||100)};step()}
 function stopPrevPlay(){clearTimeout(prev.timer);prev.play=false;setPrevBtn();if(prev.el)drawPrevNow()}
 function setPrevBtn(){const b=winEl('winPrev').querySelector('[data-a="play"]');b.innerHTML=icon(prev.play?'pause':'play');b.setAttribute('aria-label',prev.play?'Пауза':'Проиграть анимацию')}
 setPrevBtn();
 new ResizeObserver(()=>{refs.forEach(placeRef);for(const[id]of WINS)if(WS[id])placeWin(id)}).observe(stage);
 
+function readUI(ui){st.grid=ui.grid!==false;st.gridN=ui.gridN|0;st.gridZ=[12,16,20,24,32].includes(ui.gridZ)?ui.gridZ:20;st.bg=BGS.some(b=>b[0]===ui.bg)?ui.bg:'chk';st.tile=!!ui.tile;st.shape=ui.shape==='round'?'round':'sq';st.smart=ui.smart!==false;if(ui.ramp&&[3,5,7,9].includes(ui.ramp.n))st.ramp={n:ui.ramp.n,shift:clamp(+ui.ramp.shift||0,0,1)};st.touch=['auto','draw','pan'].includes(ui.touch)?ui.touch:'auto';penSeen=!!ui.penSeen;if(ui.ex&&typeof ui.ex==='object'){const e=ui.ex;if(EX_FMTS.includes(e.fmt))st.ex.fmt=e.fmt;if(EX_SCALES.includes(e.scale))st.ex.scale=e.scale;if(['row','grid','tags'].includes(e.layout))st.ex.layout=e.layout}prev.scale=[1,2,4].includes(ui.prevScale)?ui.prevScale:2;winEl('winPrev').querySelector('[data-a="sc"]').textContent='×'+prev.scale;st.tlOn=ui.tlOn!==false;if(ui.daily&&typeof ui.daily==='object')st.daily={on:ui.daily.on!==false,day:ui.daily.day|0,shift:ui.daily.shift|0}}
 /* ---------- start ---------- */
 sizeAux();renderPalette();renderRecent();setTool('pencil');updatePlayUI();
 (async()=>{
-  let ui=null;try{ui=JSON.parse(await kvGet('pixelnya:ui')||'null');if(ui){st.grid=ui.grid!==false;st.gridN=ui.gridN|0;st.gridZ=[12,16,20,24,32].includes(ui.gridZ)?ui.gridZ:20;st.bg=BGS.some(b=>b[0]===ui.bg)?ui.bg:'chk';st.tile=!!ui.tile;st.shape=ui.shape==='round'?'round':'sq';st.smart=ui.smart!==false;st.touch=['auto','draw','pan'].includes(ui.touch)?ui.touch:'auto';penSeen=!!ui.penSeen;if(ui.ex&&typeof ui.ex==='object'){const e=ui.ex;if(EX_FMTS.includes(e.fmt))st.ex.fmt=e.fmt;if(EX_SCALES.includes(e.scale))st.ex.scale=e.scale;if(['row','grid','tags'].includes(e.layout))st.ex.layout=e.layout}prev.scale=[1,2,4].includes(ui.prevScale)?ui.prevScale:2;winEl('winPrev').querySelector('[data-a="sc"]').textContent='×'+prev.scale}}catch{}
-  await loadLib();
+  let ui=null;try{ui=JSON.parse(await kvGet('pixelnya:ui')||'null');if(ui)readUI(ui)}catch{}
+  await loadLib();await loadDays();
+  if(!lib.firstSeen){lib.firstSeen=lib.items.length?Math.min(...lib.items.map(i=>i.t||Date.now())):Date.now();saveLib()}
   const tryOpen=async id=>{try{const v=await kvGet(projKey(id));if(!v)return false;applyDocData(decodeProject(JSON.parse(v)));cur=lib.items.find(i=>i.id===id);lib.cur=id;st.ex.name=cur.name;return true}catch{return false}};
   let loaded=false;
   if(lib.cur&&lib.items.some(i=>i.id===lib.cur))loaded=await tryOpen(lib.cur);
   if(!loaded)for(const it of [...lib.items].sort((a,b)=>b.t-a.t)){if(await tryOpen(it.id)){loaded=true;break}}
   syncViewBtns();
   renderPalette();structureChanged();updateTitle();clearTimeout(saveTimer);dirty=false;booted=true;
-  requestAnimationFrame(()=>{resize();initWins(ui&&ui.wins);fitView();drawPicker();if(!loaded)sizeDialog('new',true)});
+  requestAnimationFrame(()=>{resize();initWins(ui&&ui.wins);setMode(ui&&ui.mode,true);fitView();drawPicker();if(!loaded)sizeDialog('new',true)});
   try{const r=await kvGet('pixelnya:refs');if(r)JSON.parse(r).forEach(o=>addRef(o,true))}catch{}
   try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch{}
+  setTimeout(checkNudge,2500);
   try{if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
     const had=!!navigator.serviceWorker.controller;
     navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had)toast('Вышло обновление. Закрой приложение и открой заново')});
