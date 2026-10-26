@@ -51,7 +51,7 @@ svg.px{width:18px;height:18px;shape-rendering:crispEdges;fill:currentColor;displ
 .lbl{color:var(--muted);font-size:13px}
 .val{min-width:22px;text-align:center;font-variant-numeric:tabular-nums}
 .hint{color:var(--muted);font-size:12px;margin:0;line-height:1.35}
-.stage{position:relative;overflow:hidden;touch-action:none;background:var(--work)}
+.stage{position:relative;overflow:hidden;touch-action:none;background:var(--work);isolation:isolate}
 #view{position:absolute;inset:0;display:block;touch-action:none}
 /* floating windows */
 .win{position:absolute;z-index:10;background:var(--win);border:2px solid var(--line);border-radius:3px;box-shadow:3px 3px 0 rgba(0,0,0,.28);display:flex;flex-direction:column;max-height:calc(100% - 12px)}
@@ -199,6 +199,11 @@ textarea.field{height:auto;padding:7px;resize:vertical}
 .pstrip i{width:10px;height:10px;display:block}
 .pstrip.big i{width:22px;height:22px}
 .fine{color:var(--muted);font-size:12px}
+.selbar{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:999999;display:flex;gap:6px;align-items:center;padding:5px;background:var(--win);border:2px solid var(--line);border-radius:3px;box-shadow:3px 3px 0 rgba(0,0,0,.28);max-width:calc(100% - 16px)}
+.selbar[hidden],.selbar .btn[hidden]{display:none}
+.spk{display:flex;align-items:center;padding:0 4px;color:var(--muted)}
+.spk[hidden]{display:none}
+.spk svg.px{width:14px;height:14px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -219,6 +224,7 @@ textarea.field{height:auto;padding:7px;resize:vertical}
 </header>
 
 <main class="stage" id="stage"><canvas id="view"></canvas>
+  <div class="selbar" id="selBar" role="toolbar" aria-label="Выделение" hidden><button class="btn primary" id="selDone" hidden>Готово</button><button class="btn" id="selOff">Снять выделение</button></div>
   <section class="win" id="winTools" aria-label="Инструменты">
     <div class="win-bar"><i class="grip"></i><span>Инструменты</span><button class="wbtn" data-collapse aria-label="Свернуть">–</button></div>
     <div class="win-body tools-body"><nav class="tools" id="tools" aria-label="Инструменты"></nav><div class="opts" id="opts"></div></div>
@@ -263,6 +269,7 @@ textarea.field{height:auto;padding:7px;resize:vertical}
       <label class="op">Непрозр. <input type="range" id="opacity" min="0" max="100"><span id="opVal"></span></label>
       <label class="op">Смешивание <select class="field" id="blend"></select></label>
       <p class="hint">Замок — рисовать только по нарисованному. Тап по выбранному слою — переименовать.</p>
+      <p class="hint" id="spHint" hidden>Значок со стрелкой: часть слоя лежит за краем холста. Она не пропала. Сдвинь слой назад, и она вернётся.</p>
     </div>
   </section>
 </main>
@@ -340,6 +347,7 @@ const ICONS={
   eye:[".........",".........","...###...",".##...##.","#...#...#",".##...##.","...###...",".........","........."],
   lock:["..#####..",".#.....#.",".#.....#.","#########","#########","####.####","####.####","#########","#########"]
 };
+ICONS.out=[".........","#####....","#...#.#..","#...#.##.","#.#######","#...#.##.","#...#.#..","#####....","........."];
 ICONS.redo=ICONS.undo.map(r=>[...r].reverse().join(''));ICONS.next=ICONS.prev.map(r=>[...r].reverse().join(''));ICONS.last=ICONS.first.map(r=>[...r].reverse().join(''));
 function icon(n){const rows=ICONS[n];let r='';rows.forEach((row,y)=>{for(let x=0;x<row.length;x++)if(row[x]==='#')r+=`<rect x="${x}" y="${y}" width="1" height="1"/>`});return `<svg class="px" viewBox="0 0 ${rows[0].length} ${rows.length}" aria-hidden="true">${r}</svg>`}
 document.querySelectorAll('[data-icon]').forEach(el=>el.innerHTML=icon(el.dataset.icon));
@@ -383,10 +391,73 @@ let palette=DEFAULT_PAL.slice(),palIdx=new Map();
 let undoStack=[],redoStack=[];
 let clip=null,selVer=0;
 const st={layer:0,frame:0,tool:'pencil',size:1,pp:true,mx:false,my:false,filled:false,contig:true,shape:'sq',touch:'auto',focus:false,
-  shade:0,dither:0,selMode:'new',sel:null,float:null,
+  shade:0,dither:0,selMode:'new',smart:true,sel:null,float:null,
   primary:[27,33,48,255],secondary:[255,255,255,255],zoom:8,panX:0,panY:0,grid:true,gridN:0,gridZ:20,bg:'chk',tile:false,onion:false,playing:false,activeTag:-1,ants:0,
   ex:{fmt:'png',scale:4,layout:'row',scope:'all',name:'sprite'},text:{text:'Текст',font:0,size:8}};
 const cel=(l=st.layer,f=st.frame)=>doc.cels[l][f];
+
+/* ---------- за краем холста ---------- */
+/* Слой можно сдвинуть так, что часть рисунка окажется за краем холста. Эти пиксели не пропадают: они лежат рядом со слоем
+   («спилл», свойство sp у массива пикселей слоя) как неизменяемый прямоугольник {x,y,w,h,d} в координатах холста.
+   Внутри самого холста спилл всегда пустой: холст хранит свои пиксели, спилл — только то, что снаружи. */
+const SPM=1536; /* дальше этого от края холста пиксели уже не храним */
+const LOSTMSG='Часть слоя улетела слишком далеко за край и не сохранилась';
+let spillToasted=false;
+const cloneCel=c=>{const n=c.slice();if(c.sp)n.sp=c.sp;return n};
+const spBytes=s=>s?s.d.length:0;
+const outOfCanvas=(x,y,w,h)=>x<0||y<0||x+w>doc.w||y+h>doc.h;
+function spEq(a,b){a=a||null;b=b||null;if(a===b)return true;if(!a||!b||a.x!==b.x||a.y!==b.y||a.w!==b.w||a.h!==b.h)return false;return sameArr(a.d,b.d)}
+const spCache=new WeakMap();
+function spCanvas(sp){let c=spCache.get(sp);if(!c){c=document.createElement('canvas');c.width=sp.w;c.height=sp.h;c.getContext('2d').putImageData(new ImageData(sp.d,sp.w,sp.h),0,0);spCache.set(sp,c)}return c}
+function noteSpill(before,after){if(!before&&after&&!spillToasted){spillToasted=true;toast('Что вышло за край холста, не пропало: оно сохранено. Сдвинь слой назад, и вернётся')}}
+/* parts — прямоугольники пикселей {x,y,w,h,d}. Сдвигаем их на (dx,dy): что попало на холст nw×nh, пишем в dst (если он есть),
+   остальное складываем в новый спилл. lost — сколько пикселей улетело дальше SPM и не сохранилось */
+function reextent(parts,dx,dy,nw,nh,dst){
+  if(dst)dst.fill(0);
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,lost=0;
+  for(const P of parts){const{x,y,w,h,d}=P;
+    for(let j=0;j<h;j++){const ty=y+j+dy,rowIn=ty>=0&&ty<nh;
+      for(let i=0,s=j*w*4+3;i<w;i++,s+=4){if(!d[s])continue;const tx=x+i+dx;
+        if(rowIn&&tx>=0&&tx<nw)continue;
+        if(tx<-SPM||ty<-SPM||tx>=nw+SPM||ty>=nh+SPM){lost++;continue}
+        if(tx<x0)x0=tx;if(tx>x1)x1=tx;if(ty<y0)y0=ty;if(ty>y1)y1=ty}}}
+  let sp=null;
+  if(x1>=x0){sp={x:x0,y:y0,w:x1-x0+1,h:y1-y0+1,d:null};sp.d=new Uint8ClampedArray(sp.w*sp.h*4)}
+  if(dst||sp)for(const P of parts){const{x,y,w,h,d}=P;
+    for(let j=0;j<h;j++){const ty=y+j+dy,rowIn=ty>=0&&ty<nh;
+      for(let i=0,s=j*w*4;i<w;i++,s+=4){if(!d[s+3])continue;const tx=x+i+dx;let o;
+        if(rowIn&&tx>=0&&tx<nw){if(!dst)continue;o=(ty*nw+tx)*4;dst[o]=d[s];dst[o+1]=d[s+1];dst[o+2]=d[s+2];dst[o+3]=d[s+3];continue}
+        if(!sp||tx<sp.x||ty<sp.y||tx>=sp.x+sp.w||ty>=sp.y+sp.h)continue;
+        o=((ty-sp.y)*sp.w+(tx-sp.x))*4;sp.d[o]=d[s];sp.d[o+1]=d[s+1];sp.d[o+2]=d[s+2];sp.d[o+3]=d[s+3]}}}
+  return{sp,lost};
+}
+/* спилл, обрезанный по нарисованному (или null, если там пусто) */
+function trimSpill(sp){let x0=sp.w,y0=sp.h,x1=-1,y1=-1;
+  for(let y=0;y<sp.h;y++)for(let x=0;x<sp.w;x++)if(sp.d[(y*sp.w+x)*4+3]){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
+  if(x1<0)return null;if(x0===0&&y0===0&&x1===sp.w-1&&y1===sp.h-1)return sp;
+  const w=x1-x0+1,h=y1-y0+1,d=new Uint8ClampedArray(w*h*4);
+  for(let y=0;y<h;y++)d.set(sp.d.subarray(((y0+y)*sp.w+x0)*4,((y0+y)*sp.w+x0+w)*4),y*w*4);
+  return{x:sp.x+x0,y:sp.y+y0,w,h,d}}
+/* «Слить вниз» для того, что за краем: рисуем оба спилла так же, как сливаются сами слои */
+function mergeSpills(a,LL,b,LU){
+  if(!a&&!b)return null;const rs=[a,b].filter(Boolean);
+  const x0=Math.min(...rs.map(r=>r.x)),y0=Math.min(...rs.map(r=>r.y)),x1=Math.max(...rs.map(r=>r.x+r.w)),y1=Math.max(...rs.map(r=>r.y+r.h));
+  const c=document.createElement('canvas');c.width=x1-x0;c.height=y1-y0;const x=c.getContext('2d',{willReadFrequently:true});
+  if(a){x.globalAlpha=LL.opacity;x.drawImage(spCanvas(a),a.x-x0,a.y-y0)}
+  if(b){x.globalAlpha=LU.opacity;x.globalCompositeOperation=LU.blend||'source-over';x.drawImage(spCanvas(b),b.x-x0,b.y-y0);x.globalCompositeOperation='source-over'}
+  const id=x.getImageData(0,0,c.width,c.height);return trimSpill({x:x0,y:y0,w:c.width,h:c.height,d:new Uint8ClampedArray(id.data)});
+}
+/* выделено всё, что нарисовано на слое (или выделен весь холст): тогда вместе с выделением едет и то, что лежит за краем холста */
+function coversLayer(d,sel){let any=false,all=true;for(let p=0;p<sel.length;p++){if(!sel[p])all=false;if(d[p*4+3]){if(!sel[p])return false;any=true}}return any||all}
+/* достаёт выделенные пиксели слоя; с carry забирает и то, что лежит за краем холста */
+function extractSel(d,sel,carry,clear){
+  const W=doc.w,H=doc.h,b=selBounds(sel,W,H);if(!b)return null;const sp=carry&&d.sp?d.sp:null;
+  let R=b;if(sp){const x0=Math.min(b.x,sp.x),y0=Math.min(b.y,sp.y),x1=Math.max(b.x+b.w,sp.x+sp.w),y1=Math.max(b.y+b.h,sp.y+sp.h);R={x:x0,y:y0,w:x1-x0,h:y1-y0}}
+  const data=new Uint8ClampedArray(R.w*R.h*4),mask=new Uint8Array(R.w*R.h);
+  for(let y=0;y<b.h;y++)for(let x=0;x<b.w;x++){const p=(b.y+y)*W+b.x+x;if(!sel[p])continue;const q=(b.y-R.y+y)*R.w+(b.x-R.x+x);mask[q]=1;data.set(d.subarray(p*4,p*4+4),q*4);if(clear)d.fill(0,p*4,p*4+4)}
+  if(sp)for(let y=0;y<sp.h;y++)for(let x=0;x<sp.w;x++){const s=(y*sp.w+x)*4;if(!sp.d[s+3])continue;const q=(sp.y-R.y+y)*R.w+(sp.x-R.x+x);mask[q]=1;data.set(sp.d.subarray(s,s+4),q*4)}
+  return{R,data,mask,carried:!!sp};
+}
 
 const comp=document.createElement('canvas'),cctx=comp.getContext('2d',{willReadFrequently:true});
 const tmp=document.createElement('canvas'),tctx=tmp.getContext('2d');
@@ -439,7 +510,21 @@ function antsPath(){
   if(antsC.k!==k)antsC={k,p:maskPath(m,w,h)};return{p:antsC.p,ox,oy};
 }
 setInterval(()=>{if(st.sel||st.float||stroke?.prevMask){st.ants++;requestRender()}},140);
+/* то, что вышло за край холста (спилл активного слоя и «плавающий» фрагмент), видно бледным силуэтом */
+function drawCanvasAt(c,cx,cy,cw,ch,x0,y0,z){
+  const a=Math.max(0,Math.floor(-x0/z)-cx),b=Math.max(0,Math.floor(-y0/z)-cy),a2=Math.min(cw,Math.ceil((VW-x0)/z)-cx),b2=Math.min(ch,Math.ceil((VH-y0)/z)-cy);
+  if(a2<=a||b2<=b)return;vctx.drawImage(c,a,b,a2-a,b2-b,x0+(cx+a)*z,y0+(cy+b)*z,(a2-a)*z,(b2-b)*z);
+}
+function drawGhosts(x0,y0,z,dw,dh){
+  if(st.tile)return;const F=st.float,sp=cel().sp,L=doc.layers[st.layer],showSp=!!(sp&&L&&L.visible);if(!showSp&&!F)return;
+  vctx.save();vctx.beginPath();vctx.rect(0,0,VW,VH);vctx.rect(x0,y0,dw,dh);vctx.clip('evenodd');
+  vctx.globalAlpha=.5;vctx.imageSmoothingEnabled=false;
+  if(showSp)drawCanvasAt(spCanvas(sp),sp.x,sp.y,sp.w,sp.h,x0,y0,z);
+  if(F)drawCanvasAt(F.canvas,F.x,F.y,F.w,F.h,x0,y0,z);
+  vctx.restore();
+}
 function render(){
+  syncSelBar();
   vctx.setTransform(dpr,0,0,dpr,0,0);vctx.clearRect(0,0,VW,VH);
   const z=st.zoom,x0=st.panX,y0=st.panY,dw=doc.w*z,dh=doc.h*z;
   const tiles=st.tile?[-1,0,1]:[0];
@@ -449,6 +534,7 @@ function render(){
   const n=doc.frames.length;
   if(st.onion&&n>1&&!st.playing){drawTinted((st.frame-1+n)%n,'#e0443a',.4,x0,y0,dw,dh);if(n>2)drawTinted((st.frame+1)%n,'#3a8de0',.3,x0,y0,dw,dh)}
   for(const ty of tiles)for(const tx of tiles){if(tx||ty)vctx.globalAlpha=.85;vctx.drawImage(comp,x0+tx*dw,y0+ty*dh,dw,dh);vctx.globalAlpha=1}
+  drawGhosts(x0,y0,z,dw,dh);
   /* тонкая сетка пикселей: невидима на обычном зуме, плавно проявляется и становится полной на st.gridZ (по умолчанию 2000%) */
   const ga=clamp((z-(st.gridZ-8))/8,0,1);
   if(st.grid&&ga>0){
@@ -562,7 +648,33 @@ function polyMask(pts){
   for(let i=0;i<n;i++){const a=pts[i],b=pts[(i+1)%n];bres(a[0],a[1],b[0],b[1],(x,y)=>{if(x>=0&&y>=0&&x<w&&y<h)m[y*w+x]=1})}
   return m;
 }
-function selChanged(){selVer++;renderOptions();requestRender()}
+/* «Точно по объекту»: цвета фона берём с кромки вокруг обводки (пиксели снаружи, вплотную к ней) и смываем их изнутри,
+   начиная от обводки. Всё, что не смылось, считается объектом. Если чистого фона вокруг нет или смылось всё, вернём null,
+   и тогда выделение остаётся по линии как есть */
+function smartMask(M,d,w,h){
+  const key=p=>{const i=p*4;return d[i+3]===0?0:((d[i]<<24|d[i+1]<<16|d[i+2]<<8|d[i+3])>>>0)};
+  const cnt=new Map();let ring=0;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const p=y*w+x;if(M[p])continue;
+    if((x>0&&M[p-1])||(x<w-1&&M[p+1])||(y>0&&M[p-w])||(y<h-1&&M[p+w])){const k=key(p);cnt.set(k,(cnt.get(k)||0)+1);ring++}}
+  if(ring<4)return null;
+  const thr=Math.max(2,Math.ceil(ring*.03)),bg=new Set();let cov=0;
+  for(const[k,c]of cnt)if(c>=thr){bg.add(k);cov+=c}
+  if(cov<ring*.6)return null;
+  const gone=new Uint8Array(w*h),stack=[];
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const p=y*w+x;if(!M[p])continue;
+    if((x===0||y===0||x===w-1||y===h-1||!M[p-1]||!M[p+1]||!M[p-w]||!M[p+w])&&bg.has(key(p))){gone[p]=1;stack.push(p)}}
+  while(stack.length){const p=stack.pop(),x=p%w;let q;
+    if(x>0){q=p-1;if(M[q]&&!gone[q]&&bg.has(key(q))){gone[q]=1;stack.push(q)}}
+    if(x<w-1){q=p+1;if(M[q]&&!gone[q]&&bg.has(key(q))){gone[q]=1;stack.push(q)}}
+    if(p>=w){q=p-w;if(M[q]&&!gone[q]&&bg.has(key(q))){gone[q]=1;stack.push(q)}}
+    if(p+w<M.length){q=p+w;if(M[q]&&!gone[q]&&bg.has(key(q))){gone[q]=1;stack.push(q)}}}
+  const res=new Uint8Array(w*h);let kept=0;
+  for(let p=0;p<res.length;p++)if(M[p]&&!gone[p]){res[p]=1;kept++}
+  return kept?res:null;
+}
+/* быстрые кнопки над холстом, пока что-то выделено или «в руке» */
+function syncSelBar(){const b=$('#selBar');if(!b)return;const on=!!(st.sel||st.float);if(b.hidden===on)b.hidden=!on;const d=$('#selDone');if(d&&d.hidden===!!st.float)d.hidden=!st.float}
+function selChanged(){selVer++;renderOptions();syncSelBar();requestRender()}
 function setSelection(m,mode){
   mode=mode||'new';let r;
   if(!m)r=mode==='new'?null:st.sel;
@@ -571,51 +683,74 @@ function setSelection(m,mode){
   if(r&&!r.some(v=>v))r=null;st.sel=r;selChanged();
 }
 function buildFloatCanvas(){const F=st.float;F.canvas=document.createElement('canvas');F.canvas.width=F.w;F.canvas.height=F.h;F.canvas.getContext('2d').putImageData(new ImageData(F.data,F.w,F.h),0,0)}
-function newFloat(o){st.float={l:st.layer,f:st.frame,before:cel().slice(),...o};buildFloatCanvas();st.sel=null;selChanged()}
+function newFloat(o){st.float={l:st.layer,f:st.frame,before:cel().slice(),sb:cel().sp||null,...o};buildFloatCanvas();st.sel=null;selChanged()}
 function liftSelection(){
   if(st.float)return true;if(!st.sel)return false;
   if(!doc.layers[st.layer].visible){toast('Слой скрыт. Включи его, чтобы двигать');return false}
-  const b=selBounds(st.sel,doc.w,doc.h);if(!b)return false;
-  const d=cel(),before=d.slice(),W=doc.w,data=new Uint8ClampedArray(b.w*b.h*4),mask=new Uint8Array(b.w*b.h);
-  for(let y=0;y<b.h;y++)for(let x=0;x<b.w;x++){const p=(b.y+y)*W+b.x+x;if(!st.sel[p])continue;const q=y*b.w+x;mask[q]=1;data.set(d.subarray(p*4,p*4+4),q*4);d.fill(0,p*4,p*4+4)}
-  st.float={l:st.layer,f:st.frame,x:b.x,y:b.y,w:b.w,h:b.h,data,mask,before};buildFloatCanvas();st.sel=null;selChanged();return true;
+  const d=cel(),before=d.slice(),sb=d.sp||null,whole=st.sel.every(v=>v===1);
+  /* выделено всё, что нарисовано на слое: тогда с ним едет и то, что лежит за краем холста */
+  const g=extractSel(d,st.sel,!!sb&&coversLayer(d,st.sel),true);if(!g)return false;
+  if(g.carried)d.sp=null;
+  st.float={l:st.layer,f:st.frame,x:g.R.x,y:g.R.y,w:g.R.w,h:g.R.h,data:g.data,mask:g.mask,before,sb,whole};buildFloatCanvas();st.sel=null;selChanged();return true;
+}
+/* впечатывает «плавающий» фрагмент в слой d: что попало на холст — в пиксели, что за краем — в спилл слоя */
+function foldFloat(d,F,sp0){
+  const W=doc.w,H=doc.h,m=new Uint8Array(W*H);let any=false,out=false;
+  for(let y=0;y<F.h;y++)for(let x=0;x<F.w;x++){const q=y*F.w+x;if(!F.mask[q])continue;const tx=F.x+x,ty=F.y+y;
+    if(tx<0||ty<0||tx>=W||ty>=H){if(F.data[q*4+3])out=true;continue}
+    const p=ty*W+tx;m[p]=1;any=true;if(F.data[q*4+3]>0)d.set(F.data.subarray(q*4,q*4+4),p*4)}
+  let sp=sp0||null,lost=0;
+  if(out){const fp={x:F.x,y:F.y,w:F.w,h:F.h,d:F.data},r=reextent(sp0?[sp0,fp]:[fp],0,0,W,H,null);sp=r.sp;lost=r.lost}
+  return{m,any,sp,lost};
 }
 function commitFloat(){
   const F=st.float;if(!F)return;st.float=null;
-  const W=doc.w,H=doc.h,d=doc.cels[F.l]&&doc.cels[F.l][F.f];if(!d){selChanged();return}
-  const m=new Uint8Array(W*H);let any=false;
-  for(let y=0;y<F.h;y++)for(let x=0;x<F.w;x++){const q=y*F.w+x;if(!F.mask[q])continue;const tx=F.x+x,ty=F.y+y;if(tx<0||ty<0||tx>=W||ty>=H)continue;const p=ty*W+tx;m[p]=1;any=true;if(F.data[q*4+3]>0)d.set(F.data.subarray(q*4,q*4+4),p*4)}
-  st.sel=any?m:null;
-  if(F.before.length===d.length&&!sameArr(d,F.before))pushUndo({type:'cel',l:F.l,f:F.f,before:F.before,after:d.slice()});
+  const d=doc.cels[F.l]&&doc.cels[F.l][F.f];if(!d){selChanged();return}
+  const r=foldFloat(d,F,d.sp||null);
+  d.sp=spEq(r.sp,F.sb)?(F.sb||null):r.sp;
+  st.sel=r.any?r.m:null;
+  const spc=!spEq(d.sp,F.sb);
+  if(F.before.length===d.length&&(!sameArr(d,F.before)||spc))pushUndo({type:'cel',l:F.l,f:F.f,before:F.before,after:d.slice(),sb:F.sb||null,sa:d.sp||null});
+  noteSpill(F.sb,d.sp);if(r.lost)toast(LOSTMSG);
   selChanged();drawThumb(F.f);scheduleAutosave();
 }
 function insideSel(x,y){const F=st.float;if(F){const lx=x-F.x,ly=y-F.y;return lx>=0&&ly>=0&&lx<F.w&&ly<F.h&&F.mask[ly*F.w+lx]===1}return!!(st.sel&&x>=0&&y>=0&&x<doc.w&&y<doc.h&&st.sel[y*doc.w+x])}
 function ensureFloat(){if(st.float)return true;if(!st.sel){st.sel=new Uint8Array(doc.w*doc.h).fill(1)}return liftSelection()}
-function transformFloat(fn){if(!ensureFloat())return;const F=st.float,nd=new Uint8ClampedArray(F.data.length),nm=new Uint8Array(F.mask.length);const nw=fn.swap?F.h:F.w,nh=fn.swap?F.w:F.h;
+function transformFloat(fn){if(!ensureFloat())return;const F=st.float,nd=new Uint8ClampedArray(F.data.length),nm=new Uint8Array(F.mask.length);const nw=fn.swap?F.h:F.w,nh=fn.swap?F.w:F.h,ox=F.x,oy=F.y,ow=F.w,oh=F.h;
   for(let y=0;y<F.h;y++)for(let x=0;x<F.w;x++){const s=y*F.w+x,[tx,ty]=fn(x,y,F.w,F.h),t=ty*nw+tx;nm[t]=F.mask[s];nd.set(F.data.subarray(s*4,s*4+4),t*4)}
-  if(fn.swap){F.x+=Math.floor((F.w-nw)/2);F.y+=Math.floor((F.h-nh)/2)}F.w=nw;F.h=nh;F.data=nd;F.mask=nm;buildFloatCanvas();selChanged()}
+  F.w=nw;F.h=nh;F.data=nd;F.mask=nm;
+  if(F.whole){ /* весь слой: отражаем и поворачиваем вокруг центра холста, вместе с тем, что за краем */
+    if(fn.kind==='h')F.x=doc.w-ox-ow;else if(fn.kind==='v')F.y=doc.h-oy-oh;
+    else if(fn.swap){F.x=Math.floor((doc.w+doc.h-2)/2)-oy-oh+1;F.y=Math.floor((doc.h-doc.w)/2)+ox}
+  }else if(fn.swap){F.x+=Math.floor((ow-nw)/2);F.y+=Math.floor((oh-nh)/2)}
+  buildFloatCanvas();selChanged()}
 const rotCW=(x,y,w,h)=>[h-1-y,x];rotCW.swap=true;
+const flipHf=(x,y,w)=>[w-1-x,y];flipHf.kind='h';
+const flipVf=(x,y,w,h)=>[x,h-1-y];flipVf.kind='v';
 const ACT={
   selall(){commitFloat();st.sel=new Uint8Array(doc.w*doc.h).fill(1);selChanged()},
   deselect(){commitFloat();st.sel=null;selChanged()},
   invert(){commitFloat();const m=new Uint8Array(doc.w*doc.h);for(let i=0;i<m.length;i++)m[i]=st.sel&&st.sel[i]?0:1;st.sel=m.some(v=>v)?m:null;selChanged()},
   copy(){const F=st.float;
-    if(F)clip={w:F.w,h:F.h,data:F.data.slice(),mask:F.mask.slice(),x:F.x,y:F.y};
-    else{const W=doc.w,m=st.sel||new Uint8Array(W*doc.h).fill(1),b=selBounds(m,W,doc.h);if(!b)return;const d=cel(),data=new Uint8ClampedArray(b.w*b.h*4),mask=new Uint8Array(b.w*b.h);
-      for(let y=0;y<b.h;y++)for(let x=0;x<b.w;x++){const p=(b.y+y)*W+b.x+x;if(!m[p])continue;const q=y*b.w+x;mask[q]=1;data.set(d.subarray(p*4,p*4+4),q*4)}clip={w:b.w,h:b.h,data,mask,x:b.x,y:b.y}}
+    if(F)clip={w:F.w,h:F.h,data:F.data.slice(),mask:F.mask.slice(),x:F.x,y:F.y,ext:outOfCanvas(F.x,F.y,F.w,F.h)};
+    else{const W=doc.w,m=st.sel||new Uint8Array(W*doc.h).fill(1),d=cel(),g=extractSel(d,m,!!d.sp&&coversLayer(d,m),false);if(!g)return;
+      clip={w:g.R.w,h:g.R.h,data:g.data,mask:g.mask,x:g.R.x,y:g.R.y,ext:outOfCanvas(g.R.x,g.R.y,g.R.w,g.R.h)}}
     toast('Скопировано');renderOptions()},
   del(){const F=st.float;
     if(F){st.float=null;const d=doc.cels[F.l][F.f];const m=new Uint8Array(doc.w*doc.h);for(let y=0;y<F.h;y++)for(let x=0;x<F.w;x++){const tx=F.x+x,ty=F.y+y;if(F.mask[y*F.w+x]&&tx>=0&&ty>=0&&tx<doc.w&&ty<doc.h)m[ty*doc.w+tx]=1}st.sel=m.some(v=>v)?m:null;
-      if(!sameArr(d,F.before))pushUndo({type:'cel',l:F.l,f:F.f,before:F.before,after:d.slice()});selChanged();changed(true);return}
+      if(!sameArr(d,F.before)||!spEq(d.sp,F.sb))pushUndo({type:'cel',l:F.l,f:F.f,before:F.before,after:d.slice(),sb:F.sb||null,sa:d.sp||null});selChanged();changed(true);return}
     if(!st.sel){toast('Сначала выдели область');return}
-    const d=cel(),before=d.slice();for(let p=0;p<st.sel.length;p++)if(st.sel[p])d.fill(0,p*4,p*4+4);
-    if(!sameArr(d,before))pushUndo({type:'cel',l:st.layer,f:st.frame,before,after:d.slice()});changed(true)},
+    const d=cel(),before=d.slice(),sb=d.sp||null,whole=!!sb&&coversLayer(d,st.sel);
+    for(let p=0;p<st.sel.length;p++)if(st.sel[p])d.fill(0,p*4,p*4+4);
+    if(whole)d.sp=null;
+    if(!sameArr(d,before)||whole)pushUndo({type:'cel',l:st.layer,f:st.frame,before,after:d.slice(),sb,sa:d.sp||null});changed(true)},
   cut(){ACT.copy();ACT.del()},
   paste(){if(!clip){toast('Буфер пуст. Сначала скопируй');return}commitFloat();if(stopIfHidden())return;
-    newFloat({x:clamp(clip.x,0,Math.max(0,doc.w-clip.w)),y:clamp(clip.y,0,Math.max(0,doc.h-clip.h)),w:clip.w,h:clip.h,data:clip.data.slice(),mask:clip.mask.slice()});
+    const keep=!!clip.ext&&clip.x<doc.w&&clip.y<doc.h&&clip.x+clip.w>0&&clip.y+clip.h>0;
+    newFloat({x:keep?clip.x:clamp(clip.x,0,Math.max(0,doc.w-clip.w)),y:keep?clip.y:clamp(clip.y,0,Math.max(0,doc.h-clip.h)),w:clip.w,h:clip.h,data:clip.data.slice(),mask:clip.mask.slice()});
     if(!KEEP_FLOAT.includes(st.tool)||st.tool==='picker')setTool('move');toast('Вставлено. Перетащи на место')},
-  flipH(){transformFloat((x,y,w)=>[w-1-x,y])},
-  flipV(){transformFloat((x,y,w,h)=>[x,h-1-y])},
+  flipH(){transformFloat(flipHf)},
+  flipV(){transformFloat(flipVf)},
   rot(){transformFloat(rotCW)},
   commit(){commitFloat()}
 };
@@ -633,7 +768,7 @@ function beginStroke(x,y,pointerId,ptype,opts){
       if(!st.float&&!liftSelection())return;const F=st.float;
       stroke={tool:'floatmove',pointerId,ptype,start:[x,y],fx:F.x,fy:F.y,moved:false};return}
     if(tool==='text'){commitFloat();textDialog(x,y);return}
-    if(tool==='move'){if(stopIfHidden())return;stroke={tool:'move',pointerId,ptype,l:st.layer,f:st.frame,before:cel().slice(),start:[x,y]};return}
+    if(tool==='move'){if(stopIfHidden())return;stroke={tool:'move',pointerId,ptype,l:st.layer,f:st.frame,before:cel().slice(),sb:cel().sp||null,lost:0,start:[x,y]};return}
     commitFloat();
     if(tool==='wand'){setSelection(regionMask(cel(),x,y,st.contig,null),mode);return}
     stroke={tool,pointerId,ptype,start:[x,y],last:[x,y],pts:[[x,y]],mode,pv:0,prevMask:null};
@@ -671,7 +806,11 @@ function strokeMove(x,y){
 }
 function shapeUpdate(x,y){
   const s=stroke,[sx,sy]=s.start,c=s.color;
-  if(s.tool==='move'){const d=cel(s.l,s.f),dx=x-sx,dy=y-sy,w=doc.w,h=doc.h,b=s.before;d.fill(0);
+  if(s.tool==='move'){const d=cel(s.l,s.f),dx=x-sx,dy=y-sy,w=doc.w,h=doc.h,b=s.before;
+    if(!st.tile){ /* едет весь слой, и то, что лежало за краем холста, тоже; что не поместилось, остаётся в спилле */
+      if(!dx&&!dy){d.set(b);d.sp=s.sb;s.lost=0;return}
+      const base={x:0,y:0,w,h,d:b},r=reextent(s.sb?[base,s.sb]:[base],dx,dy,w,h,d);d.sp=r.sp;s.lost=r.lost;return}
+    d.fill(0);
     for(let yy=0;yy<h;yy++){let ty=yy+dy;if(st.tile)ty=((ty%h)+h)%h;if(ty<0||ty>=h)continue;for(let xx=0;xx<w;xx++){let tx=xx+dx;if(st.tile)tx=((tx%w)+w)%w;if(tx<0||tx>=w)continue;const si=(yy*w+xx)*4,di=(ty*w+tx)*4;d[di]=b[si];d[di+1]=b[si+1];d[di+2]=b[si+2];d[di+3]=b[si+3]}}return}
   P.d.set(s.before);
   if(s.tool==='line')bres(sx,sy,x,y,(px,py)=>brush(px,py,c));
@@ -687,15 +826,20 @@ function endStroke(){
   const s=stroke;if(!s)return;stroke=null;if(s.loupe)hideLoupe();
   if(s.tool==='floatmove'){if(!s.moved&&SELT.includes(st.tool)){commitFloat();st.sel=null;selChanged()}else{renderOptions();requestRender()}return}
   if(s.tool==='select'){const[sx,sy]=s.start,[ex,ey]=s.last;if(sx===ex&&sy===ey&&s.mode==='new'){st.sel=null;selChanged();return}setSelection(rectMask(sx,sy,ex,ey),s.mode);return}
-  if(s.tool==='lasso'){if(s.pts.length<3){if(s.mode==='new'){st.sel=null;selChanged()}else requestRender();return}setSelection(polyMask(s.pts),s.mode);return}
+  if(s.tool==='lasso'){if(s.pts.length<3){if(s.mode==='new'){st.sel=null;selChanged()}else requestRender();return}
+    let m=polyMask(s.pts);
+    if(st.smart){const r=smartMask(m,cel(),doc.w,doc.h);if(r)m=r;else toast('Объект от фона не отделился: выделил по твоей линии')}
+    setSelection(m,s.mode);return}
   P=null;
-  if(s.before){const d=cel(s.l,s.f);if(!sameArr(d,s.before))pushUndo({type:'cel',l:s.l,f:s.f,before:s.before,after:d.slice()})}
+  if(s.before){const d=cel(s.l,s.f),mv=s.tool==='move',spc=mv&&!spEq(d.sp,s.sb);
+    if(!sameArr(d,s.before)||spc){const e={type:'cel',l:s.l,f:s.f,before:s.before,after:d.slice()};if(mv){e.sb=s.sb||null;e.sa=d.sp||null}pushUndo(e)}
+    if(mv){noteSpill(s.sb,d.sp);if(s.lost)toast(LOSTMSG)}}
   changed(true);
 }
 function cancelStroke(){
   const s=stroke;if(!s)return;stroke=null;if(s.loupe)hideLoupe();P=null;
   if(s.tool==='floatmove'){if(st.float){st.float.x=s.fx;st.float.y=s.fy}requestRender();return}
-  if(s.before)cel(s.l,s.f).set(s.before);changed(true);
+  if(s.before){const c=cel(s.l,s.f);c.set(s.before);if(s.tool==='move')c.sp=s.sb||null}changed(true);
 }
 function pickAt(x,y,secondary){
   if(st.tile)[x,y]=wrap(x,y);
@@ -705,22 +849,22 @@ function pickAt(x,y,secondary){
 }
 
 /* ---------- undo ---------- */
-function snap(){return{w:doc.w,h:doc.h,layers:doc.layers.map(l=>({...l})),frames:doc.frames.map(f=>({...f})),tags:doc.tags.map(t=>({...t})),cels:doc.cels.map(r=>r.map(c=>c.slice())),layer:st.layer,frame:st.frame}}
-function restoreSnap(s){const resized=s.w!==doc.w||s.h!==doc.h;doc={w:s.w,h:s.h,layers:s.layers.map(l=>({...l})),frames:s.frames.map(f=>({...f})),tags:s.tags.map(t=>({...t})),cels:s.cels.map(r=>r.map(c=>c.slice()))};st.layer=s.layer;st.frame=s.frame;sizeAux();if(resized)fitView()}
+function snap(){return{w:doc.w,h:doc.h,layers:doc.layers.map(l=>({...l})),frames:doc.frames.map(f=>({...f})),tags:doc.tags.map(t=>({...t})),cels:doc.cels.map(r=>r.map(cloneCel)),layer:st.layer,frame:st.frame}}
+function restoreSnap(s){const resized=s.w!==doc.w||s.h!==doc.h;doc={w:s.w,h:s.h,layers:s.layers.map(l=>({...l})),frames:s.frames.map(f=>({...f})),tags:s.tags.map(t=>({...t})),cels:s.cels.map(r=>r.map(cloneCel))};st.layer=s.layer;st.frame=s.frame;sizeAux();if(resized)fitView()}
 const UNDO_CAP=160*1024*1024;
-function entryBytes(e){if(e.bytes==null){if(e.type==='cel')e.bytes=e.before.length+e.after.length;else{let n=0;for(const k of['before','after'])for(const r of e[k].cels)for(const c of r)n+=c.length;e.bytes=n}}return e.bytes}
+function entryBytes(e){if(e.bytes==null){if(e.type==='cel')e.bytes=e.before.length+e.after.length+spBytes(e.sb)+(e.sa!==e.sb?spBytes(e.sa):0);else{let n=0;for(const k of['before','after'])for(const r of e[k].cels)for(const c of r)n+=c.length+spBytes(c.sp);e.bytes=n}}return e.bytes}
 /* история хранится в памяти: ограничиваем и числом шагов, и объёмом, чтобы большие рисунки не валили вкладку */
 function pushUndo(e){undoStack.push(e);redoStack.length=0;let tot=0;for(const x of undoStack)tot+=entryBytes(x);
   while(undoStack.length>1&&(undoStack.length>80||tot>UNDO_CAP))tot-=entryBytes(undoStack.shift());updateUndoUI()}
 function docOp(fn){if(st.playing)stopPlay();commitFloat();const before=snap();fn();pushUndo({type:'doc',before,after:snap()});structureChanged()}
-function applyEntry(e,which){if(e.type==='cel'){doc.cels[e.l][e.f].set(e[which]);st.layer=e.l;st.frame=e.f}else restoreSnap(e[which]);structureChanged()}
+function applyEntry(e,which){if(e.type==='cel'){const c=doc.cels[e.l][e.f];c.set(e[which]);if(e.sb!==undefined)c.sp=(which==='before'?e.sb:e.sa)||null;st.layer=e.l;st.frame=e.f}else restoreSnap(e[which]);structureChanged()}
 function undo(){if(stroke)return;commitFloat();const e=undoStack.pop();if(!e){toast('Отменять нечего');return}applyEntry(e,'before');redoStack.push(e);updateUndoUI()}
 function redo(){if(stroke)return;commitFloat();const e=redoStack.pop();if(!e)return;applyEntry(e,'after');undoStack.push(e);updateUndoUI()}
 function updateUndoUI(){$('#undoBtn').disabled=!undoStack.length;$('#redoBtn').disabled=!redoStack.length}
 
 /* ---------- change propagation ---------- */
 let thumbTimer=null;
-function changed(final){requestRender();const f=stroke&&stroke.f!=null?stroke.f:st.frame;if(final){drawThumb(f);scheduleAutosave()}else if(!thumbTimer)thumbTimer=setTimeout(()=>{thumbTimer=null;drawThumb(f)},120)}
+function changed(final){requestRender();const f=stroke&&stroke.f!=null?stroke.f:st.frame;if(final){drawThumb(f);scheduleAutosave();updateSpillMarks()}else if(!thumbTimer)thumbTimer=setTimeout(()=>{thumbTimer=null;drawThumb(f)},120)}
 function structureChanged(){st.layer=clamp(st.layer,0,doc.layers.length-1);st.frame=clamp(st.frame,0,doc.frames.length-1);if(st.activeTag>=doc.tags.length)st.activeTag=-1;renderLayers();renderFrames();renderTags();frameSelected();updateUndoUI();updateMeta();requestRender();scheduleAutosave()}
 function updateMeta(){$('#sizeBtn').textContent=`${doc.w}×${doc.h}`;$('#stFrames').textContent=`Кадр ${st.frame+1} / ${doc.frames.length}`;$('#stFps').textContent=`FPS ${Math.round(1000/(doc.frames[st.frame]?.dur||100))}`;$('#metaPos').textContent=hover&&hover.x>=0&&hover.y>=0&&hover.x<doc.w&&hover.y<doc.h?`${hover.x}, ${hover.y}`:''}
 
@@ -744,8 +888,8 @@ function renderOptions(){
   if(t==='rect'||t==='ellipse')h+=sz+shp+chip('filled','С заливкой')+dith+mir;
   if(t==='fill')h+=chip('contig','Только смежные')+dith;
   if(t==='picker')h+=`<p class="hint">Берёт цвет с холста. Ещё можно просто удержать палец на холсте с любым инструментом.</p>`;
-  if(SELT.includes(t)){h+=seg('selMode','',[['new','Новое'],['add','Добавить'],['sub','Вычесть']]);if(t==='wand')h+=chip('contig','Только смежные')}
-  if(t==='move'&&!st.float&&!st.sel)h+=`<p class="hint">Двигает весь слой. Если есть выделение — двигает только его.</p>`;
+  if(SELT.includes(t)){h+=seg('selMode','',[['new','Новое'],['add','Добавить'],['sub','Вычесть']]);if(t==='wand')h+=chip('contig','Только смежные');if(t==='lasso')h+=chip('smart','Точно по объекту')+(st.smart?'<p class="hint">Обведи объект с запасом: фон вокруг не выделится.</p>':'')}
+  if(t==='move'&&!st.float&&!st.sel)h+=`<p class="hint">Двигает весь слой. Что уехало за край холста, не пропадает: оно вернётся, если сдвинуть слой назад. Если есть выделение — двигает только его.</p>`;
   if(t==='text'&&!st.float)h+=`<p class="hint">Нажми на холст там, где должен начаться текст.</p>`;
   if(SELT.includes(t)||t==='move'||t==='text'){
     const has=!!(st.sel||st.float);
@@ -761,7 +905,7 @@ $('#opts').addEventListener('click',e=>{const b=e.target.closest('button');if(!b
   const a=b.dataset.act;
   if(a==='size-')setSize(st.size-1);else if(a==='size+')setSize(st.size+1);
   else if(a&&ACT[a])ACT[a]();
-  else if(b.dataset.chip){const k=b.dataset.chip;st[k]=!st[k];b.setAttribute('aria-pressed',st[k])}
+  else if(b.dataset.chip){const k=b.dataset.chip;st[k]=!st[k];b.setAttribute('aria-pressed',st[k]);if(k==='smart'){saveUI();renderOptions()}}
   else if(b.dataset.k){const k=b.dataset.k,v=b.dataset.v;st[k]=isNaN(+v)?v:+v;if(k==='shape')saveUI();renderOptions()}});
 
 /* ---------- colors & palette ---------- */
@@ -819,6 +963,8 @@ function renderPalette(){
 
 /* ---------- layers ---------- */
 $('#blend').innerHTML=BLENDS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+/* значок «часть слоя за краем холста» в строке слоя */
+function updateSpillMarks(){let any=false;document.querySelectorAll('#layers .layer').forEach(r=>{const c=doc.cels[+r.dataset.l],has=!!(c&&c[st.frame]&&c[st.frame].sp),k=r.querySelector('.spk');if(k&&k.hidden===has)k.hidden=!has;if(has)any=true});const h=$('#spHint');if(h&&h.hidden===any)h.hidden=!any}
 function renderLayers(){
   const box=$('#layers');box.innerHTML='';
   for(let l=doc.layers.length-1;l>=0;l--){const L=doc.layers[l];
@@ -829,23 +975,26 @@ function renderLayers(){
     lock.onclick=()=>{L.lockAlpha=!L.lockAlpha;renderLayers();scheduleAutosave();toast(L.lockAlpha?'Прозрачность заблокирована: рисуешь только поверх нарисованного':'Блокировка снята')};
     const name=document.createElement('button');name.className='lname';name.textContent=L.name;
     name.onclick=()=>{if(st.layer===l){askText('Имя слоя',L.name,v=>{L.name=v.trim()||L.name;renderLayers();scheduleAutosave()})}else{commitFloat();st.layer=l;renderLayers()}};
-    row.append(eye,lock,name);box.append(row)}
+    row.dataset.l=l;const cl=doc.cels[l][st.frame],spk=document.createElement('span');spk.className='spk';spk.innerHTML=icon('out');spk.title='Часть слоя лежит за краем холста. Она сохранена: сдвинь слой назад, и она вернётся';spk.hidden=!(cl&&cl.sp);
+    row.append(eye,lock,name,spk);box.append(row)}
+  updateSpillMarks();
   const L=doc.layers[st.layer];$('#opacity').value=Math.round(L.opacity*100);$('#opVal').textContent=Math.round(L.opacity*100)+'%';$('#blend').value=L.blend||'source-over';
 }
 $('#opacity').addEventListener('input',e=>{doc.layers[st.layer].opacity=e.target.value/100;$('#opVal').textContent=e.target.value+'%';requestRender();clearTimeout(thumbTimer);thumbTimer=setTimeout(()=>{thumbTimer=null;drawAllThumbs()},150);scheduleAutosave()});
 $('#blend').addEventListener('change',e=>{doc.layers[st.layer].blend=e.target.value;requestRender();drawAllThumbs();scheduleAutosave()});
 const blankCel=()=>new Uint8ClampedArray(doc.w*doc.h*4);
 $('#lAdd').onclick=()=>docOp(()=>{const i=st.layer+1;doc.layers.splice(i,0,newLayer(`Слой ${doc.layers.length+1}`));doc.cels.splice(i,0,doc.frames.map(blankCel));st.layer=i});
-$('#lDup').onclick=()=>docOp(()=>{const i=st.layer+1,L=doc.layers[st.layer];doc.layers.splice(i,0,{...L,name:L.name+' копия'});doc.cels.splice(i,0,doc.cels[st.layer].map(c=>c.slice()));st.layer=i});
+$('#lDup').onclick=()=>docOp(()=>{const i=st.layer+1,L=doc.layers[st.layer];doc.layers.splice(i,0,{...L,name:L.name+' копия'});doc.cels.splice(i,0,doc.cels[st.layer].map(cloneCel));st.layer=i});
 $('#lDel').onclick=()=>{if(doc.layers.length<2){toast('Нужен хотя бы один слой');return}docOp(()=>{doc.layers.splice(st.layer,1);doc.cels.splice(st.layer,1);st.layer=Math.max(0,st.layer-1)})};
 function moveLayer(d){const a=st.layer,b=a+d;if(b<0||b>=doc.layers.length)return;docOp(()=>{[doc.layers[a],doc.layers[b]]=[doc.layers[b],doc.layers[a]];[doc.cels[a],doc.cels[b]]=[doc.cels[b],doc.cels[a]];st.layer=b})}
 $('#lUp').onclick=()=>moveLayer(1);$('#lDown').onclick=()=>moveLayer(-1);
 $('#lMerge').onclick=()=>{const u=st.layer;if(u===0){toast('Под этим слоем ничего нет');return}
   docOp(()=>{const lo=u-1,LU=doc.layers[u],LL=doc.layers[lo];const c=document.createElement('canvas');c.width=doc.w;c.height=doc.h;const x=c.getContext('2d',{willReadFrequently:true});
     for(let f=0;f<doc.frames.length;f++){x.clearRect(0,0,doc.w,doc.h);
+      const spLo=doc.cels[lo][f].sp||null,spUp=LU.visible?(doc.cels[u][f].sp||null):null;
       tctx.putImageData(new ImageData(doc.cels[lo][f],doc.w,doc.h),0,0);x.globalAlpha=LL.opacity;x.drawImage(tmp,0,0);
       if(LU.visible){tctx.putImageData(new ImageData(doc.cels[u][f],doc.w,doc.h),0,0);x.globalAlpha=LU.opacity;x.globalCompositeOperation=LU.blend||'source-over';x.drawImage(tmp,0,0);x.globalCompositeOperation='source-over'}
-      x.globalAlpha=1;doc.cels[lo][f]=new Uint8ClampedArray(x.getImageData(0,0,doc.w,doc.h).data)}
+      x.globalAlpha=1;const m=new Uint8ClampedArray(x.getImageData(0,0,doc.w,doc.h).data),sp=mergeSpills(spLo,LL,spUp,LU);if(sp)m.sp=sp;doc.cels[lo][f]=m}
     LL.opacity=1;doc.layers.splice(u,1);doc.cels.splice(u,1);st.layer=lo})};
 
 /* ---------- frames & tags ---------- */
@@ -864,12 +1013,12 @@ function renderFrames(){
 function drawThumb(f){const c=thumbs[f];if(c)composite(f,c.getContext('2d'))}
 function drawAllThumbs(){thumbs.forEach((_,f)=>drawThumb(f))}
 function frameSelected(){const kids=$('#strip').children;for(let i=0;i<kids.length;i++)kids[i].classList.toggle('on',i===st.frame);
-  $('#dur').value=doc.frames[st.frame].dur;updateMeta();requestRender();if(!st.playing)kids[st.frame]?.scrollIntoView({inline:'nearest',block:'nearest'})}
+  $('#dur').value=doc.frames[st.frame].dur;updateMeta();requestRender();if(!st.playing){updateSpillMarks();kids[st.frame]?.scrollIntoView({inline:'nearest',block:'nearest'})}}
 function goFrame(d){if(st.playing)stopPlay();commitFloat();st.frame=(st.frame+d+doc.frames.length)%doc.frames.length;frameSelected()}
 function tagsInsert(i){doc.tags.forEach(t=>{if(t.from>=i){t.from++;t.to++}else if(t.to>=i-1)t.to++})}
 function tagsDelete(i){doc.tags.forEach(t=>{if(t.from>i)t.from--;if(t.to>=i)t.to--});doc.tags=doc.tags.filter(t=>t.to>=t.from)}
 $('#fAdd').onclick=()=>docOp(()=>{const i=st.frame+1;doc.frames.splice(i,0,{dur:doc.frames[st.frame].dur});doc.cels.forEach(r=>r.splice(i,0,blankCel()));tagsInsert(i);st.frame=i});
-$('#fDup').onclick=()=>docOp(()=>{const i=st.frame+1;doc.frames.splice(i,0,{...doc.frames[st.frame]});doc.cels.forEach(r=>r.splice(i,0,r[st.frame].slice()));tagsInsert(i);st.frame=i});
+$('#fDup').onclick=()=>docOp(()=>{const i=st.frame+1;doc.frames.splice(i,0,{...doc.frames[st.frame]});doc.cels.forEach(r=>r.splice(i,0,cloneCel(r[st.frame])));tagsInsert(i);st.frame=i});
 $('#fDel').onclick=()=>{if(doc.frames.length<2){toast('Нужен хотя бы один кадр');return}docOp(()=>{doc.frames.splice(st.frame,1);doc.cels.forEach(r=>r.splice(st.frame,1));tagsDelete(st.frame);st.frame=Math.max(0,st.frame-1)})};
 function moveFrame(d){const a=st.frame,b=a+d;if(b<0||b>=doc.frames.length)return;docOp(()=>{[doc.frames[a],doc.frames[b]]=[doc.frames[b],doc.frames[a]];doc.cels.forEach(r=>{[r[a],r[b]]=[r[b],r[a]]});st.frame=b})}
 $('#fLeft').onclick=()=>moveFrame(-1);$('#fRight').onclick=()=>moveFrame(1);
@@ -1016,6 +1165,8 @@ addEventListener('keyup',e=>{if(e.code==='Space')spaceDown=false});
 
 /* ---------- top bar ---------- */
 $('#undoBtn').onclick=undo;$('#redoBtn').onclick=redo;
+$('#selBar').addEventListener('pointerdown',e=>e.stopPropagation());
+$('#selOff').onclick=()=>ACT.deselect();$('#selDone').onclick=()=>ACT.commit();
 function setFocus(on){
   st.focus=!!on;stage.classList.toggle('focus',st.focus);$('#focusBtn').setAttribute('aria-pressed',st.focus);
   if(st.focus)toast('Окна спрятаны. Вернуть: четыре пальца, клавиша Tab или кнопка «Окна» внизу');
@@ -1032,9 +1183,21 @@ function closeModal(){modal.hidden=true;$('#sheet').innerHTML='';const f=onModal
 modal.addEventListener('pointerdown',e=>{if(e.target===modal)closeModal()});
 let toastT=null;
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2400)}
+/* Поле ввода: фокус ставим сразу, в том же касании (так iPad поднимает клавиатуру), и повторяем, если поле его не получило.
+   Если открыли Apple Pencil, iPadOS сама клавиатуру не показывает (пишут Scribble): даём кнопку, которую нажимают пальцем */
+let lastPtype='';document.addEventListener('pointerdown',e=>{lastPtype=e.pointerType},true);
+function focusField(el,all=true){
+  if(!el)return;
+  const go=()=>{try{el.focus({preventScroll:true})}catch{try{el.focus()}catch{}}if(all)try{el.setSelectionRange(0,el.value.length)}catch{try{el.select()}catch{}}};
+  go();if(document.activeElement!==el)requestAnimationFrame(()=>{if(el.isConnected&&document.activeElement!==el)go()});
+}
 function askText(title,value,cb){
-  showModal(`<h2>${title}</h2><input class="field" id="askIn" style="height:40px"><div class="actions"><button class="btn" data-close>Отмена</button><button class="btn primary" id="askOk">Готово</button></div>`);
-  const i=$('#askIn');i.value=value;i.focus();i.select();
+  const pen=lastPtype==='pen';
+  showModal(`<h2>${title}</h2><input class="field" id="askIn" style="height:40px" enterkeyhint="done" autocomplete="off" autocapitalize="sentences" spellcheck="false">
+  ${pen?'<p class="hint">Pencil пишет прямо в поле (Scribble). Нужна клавиатура — нажми кнопку пальцем.</p><button class="btn small" id="askKb" style="align-self:flex-start">Клавиатура</button>':''}
+  <div class="actions"><button class="btn" data-close>Отмена</button><button class="btn primary" id="askOk">Готово</button></div>`);
+  const i=$('#askIn');i.value=value;focusField(i);
+  const kb=$('#askKb');if(kb)kb.onclick=()=>{i.blur();focusField(i,false);const n=i.value.length;try{i.setSelectionRange(n,n)}catch{}};
   const ok=()=>{const v=i.value;closeModal();cb(v)};$('#askOk').onclick=ok;i.addEventListener('keydown',e=>{if(e.key==='Enter')ok()});
 }
 
@@ -1095,7 +1258,8 @@ function replaceDialog(){
   <div class="actions"><button class="btn" data-close>Отмена</button><button class="btn primary" id="rOk">Заменить</button></div>`);
   wireScopes(o);$('#rSwap').onclick=()=>{swapColors();closeModal();replaceDialog()};
   $('#rOk').onclick=()=>{closeModal();const a=st.primary,b=st.secondary,m=st.sel;let cnt=0;
-    docOp(()=>{for(const d of celsFor(o))for(let p=0;p<d.length/4;p++){if(m&&!m[p])continue;const i=p*4;if(d[i+3]>0&&d[i]===a[0]&&d[i+1]===a[1]&&d[i+2]===a[2]){d[i]=b[0];d[i+1]=b[1];d[i+2]=b[2];d[i+3]=255;cnt++}}});
+    docOp(()=>{for(const d of celsFor(o)){for(let p=0;p<d.length/4;p++){if(m&&!m[p])continue;const i=p*4;if(d[i+3]>0&&d[i]===a[0]&&d[i+1]===a[1]&&d[i+2]===a[2]){d[i]=b[0];d[i+1]=b[1];d[i+2]=b[2];d[i+3]=255;cnt++}}
+      if(d.sp&&!m){const e=d.sp.d.slice();let k=0;for(let i=0;i<e.length;i+=4)if(e[i+3]>0&&e[i]===a[0]&&e[i+1]===a[1]&&e[i+2]===a[2]){e[i]=b[0];e[i+1]=b[1];e[i+2]=b[2];e[i+3]=255;k++}if(k){d.sp={...d.sp,d:e};cnt+=k}}}});
     toast(cnt?`Заменено пикселей: ${cnt}`:'Такого цвета не нашлось');drawAllThumbs()};
 }
 function outlineDialog(){
@@ -1124,8 +1288,8 @@ function adjustDialog(){
   commitFloat();if(stopIfHidden())return;
   const a={hue:0,sat:0,bri:0,con:0,inv:false},o={'Кадры':'one'},m=st.sel;
   const before=snap(),targets=()=>(o['Кадры']==='all'?doc.frames.map((_,f)=>[st.layer,f]):[[st.layer,st.frame]]);
-  let done=false;const orig=new Map();doc.frames.forEach((_,f)=>orig.set(f,doc.cels[st.layer][f].slice()));
-  const apply=()=>{doc.frames.forEach((_,f)=>doc.cels[st.layer][f].set(orig.get(f)));for(const[l,f]of targets())adjustPixels(orig.get(f),doc.cels[l][f],a,m);requestRender()};
+  let done=false;const orig=new Map(),origSp=new Map();doc.frames.forEach((_,f)=>{orig.set(f,doc.cels[st.layer][f].slice());origSp.set(f,doc.cels[st.layer][f].sp||null)});
+  const apply=()=>{doc.frames.forEach((_,f)=>{const c=doc.cels[st.layer][f];c.set(orig.get(f));c.sp=origSp.get(f)});for(const[l,f]of targets()){const c=doc.cels[l][f];adjustPixels(orig.get(f),c,a,m);const s0=origSp.get(f);if(s0&&!m){const d2=new Uint8ClampedArray(s0.d.length);adjustPixels(s0.d,d2,a,null);c.sp={...s0,d:d2}}}requestRender()};
   const sl=(k,l,min,max)=>`<label>${l} <input type="range" data-k="${k}" min="${min}" max="${max}" value="0"><span class="val" id="v_${k}">0</span></label>`;
   showModal(`<h2>Коррекция цвета</h2><p class="hint">Текущий слой${m?', внутри выделения':''}. Изменения видны сразу.</p>
   ${sl('hue','Оттенок',-180,180)}${sl('sat','Насыщенность',-100,100)}${sl('bri','Яркость',-100,100)}${sl('con','Контраст',-100,100)}
@@ -1165,7 +1329,7 @@ function textDialog(px,py){
     const c=$('#txP');if(!c)return;if(!r){c.width=1;c.height=1;return}const k=clamp(Math.floor(240/Math.max(r.w,r.h)),1,6);c.width=r.w;c.height=r.h;c.style.width=r.w*k+'px';c.style.height=r.h*k+'px';
     const x=c.getContext('2d'),id=x.createImageData(r.w,r.h);for(let p=0;p<r.mask.length;p++)if(r.mask[p]){id.data.set(st.primary,p*4)}x.putImageData(id,0,0)};
   $('#txT').oninput=upd;$('#txF').onchange=()=>{const f=FONTS[+$('#txF').value];$('#txS').value=f[2];upd()};$('#txS').oninput=upd;upd();
-  setTimeout(()=>{const t=$('#txT');if(t){t.focus();t.select()}},50);
+  focusField($('#txT'));
   $('#txOk').onclick=async()=>{await upd();if(!last){toast('Напиши текст');return}closeModal();st.text={...o};
     const r=last,data=new Uint8ClampedArray(r.w*r.h*4);for(let p=0;p<r.mask.length;p++)if(r.mask[p])data.set(st.primary,p*4);
     newFloat({x:px,y:py,w:r.w,h:r.h,data,mask:r.mask.slice()});toast('Перетащи текст на место и нажми «Готово»')};
@@ -1176,17 +1340,29 @@ const fileIn=$('#fileIn');
 function pickFile(accept,cb){fileIn.value='';fileIn.accept=accept;fileIn.onchange=()=>{const f=fileIn.files[0];if(f)cb(f)};fileIn.click()}
 function toB64(u8){let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s)}
 function fromB64(b){const s=atob(b),a=new Uint8ClampedArray(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a}
-function floatMerged(c){const F=st.float,W=doc.w,H=doc.h,d=c.slice();for(let y=0;y<F.h;y++)for(let x=0;x<F.w;x++){const q=y*F.w+x;if(!F.mask[q])continue;const tx=F.x+x,ty=F.y+y;if(tx<0||ty<0||tx>=W||ty>=H)continue;if(F.data[q*4+3]>0)d.set(F.data.subarray(q*4,q*4+4),(ty*W+tx)*4)}return d}
-/* пока выделение «в руке», его пиксели вынуты из слоя: при сохранении подмешиваем их, чтобы ничего не потерялось */
+/* пока выделение «в руке», его пиксели вынуты из слоя: при сохранении подмешиваем их, чтобы ничего не потерялось.
+   То, что лежит за краем холста, едет в проект отдельным списком spills (старые версии его просто не читают) */
 function serialize(){
-  const F=st.float,cels=(F&&doc.cels[F.l]&&doc.cels[F.l][F.f])?doc.cels.map((r,l)=>r.map((c,f)=>l===F.l&&f===F.f?floatMerged(c):c)):doc.cels;
-  return{app:'pixelnya',v:3,name:cur?cur.name:'',w:doc.w,h:doc.h,layers:doc.layers,frames:doc.frames,tags:doc.tags,cels:cels.map(r=>r.map(toB64)),palette};
+  const F=st.float,live=F&&doc.cels[F.l]&&doc.cels[F.l][F.f],spills=[];
+  const cels=doc.cels.map((r,l)=>r.map((c,f)=>{let d=c,sp=c.sp||null;
+    if(live&&l===F.l&&f===F.f){d=c.slice();sp=foldFloat(d,F,sp).sp}
+    if(sp)spills.push({l,f,x:sp.x,y:sp.y,w:sp.w,h:sp.h,d:toB64(sp.d)});
+    return toB64(d)}));
+  const o={app:'pixelnya',v:3,name:cur?cur.name:'',w:doc.w,h:doc.h,layers:doc.layers,frames:doc.frames,tags:doc.tags,cels,palette};
+  if(spills.length)o.spills=spills;return o;
 }
 function decodeProject(o){
   if(!o||o.app!=='pixelnya'||!Array.isArray(o.cels)||!Array.isArray(o.layers)||!Array.isArray(o.frames))throw new Error('bad');
   const w=o.w|0,h=o.h|0;if(w<1||h<1||w>MAXS||h>MAXS)throw new Error('bad');
   const n=w*h*4,cels=o.cels.map(r=>r.map(s=>{const a=fromB64(s);if(a.length!==n)throw new Error('bad');return a}));
-  return{name:typeof o.name==='string'?o.name:'',w,h,layers:o.layers,frames:o.frames,tags:Array.isArray(o.tags)?o.tags:[],cels,palette:o.palette};
+  const spills=[];
+  if(Array.isArray(o.spills))for(const q of o.spills){try{
+    const l=q.l|0,f=q.f|0,sw=q.w|0,sh=q.h|0,sx=q.x|0,sy=q.y|0;
+    if(l<0||f<0||l>=cels.length||f>=cels[l].length||sw<1||sh<1||sw>8192||sh>8192)continue;
+    const d=fromB64(q.d);if(d.length!==sw*sh*4)continue;
+    for(let j=0;j<sh;j++){const ty=sy+j;if(ty<0||ty>=h)continue;for(let i=0;i<sw;i++){const tx=sx+i;if(tx>=0&&tx<w)d.fill(0,(j*sw+i)*4,(j*sw+i)*4+4)}}
+    spills.push({l,f,x:sx,y:sy,w:sw,h:sh,d})}catch{}}
+  return{name:typeof o.name==='string'?o.name:'',w,h,layers:o.layers,frames:o.frames,tags:Array.isArray(o.tags)?o.tags:[],cels,spills,palette:o.palette};
 }
 function applyDocData(d){
   const w=d.w|0,h=d.h|0;if(w<1||h<1||w>MAXS||h>MAXS)throw new Error('bad');
@@ -1198,6 +1374,7 @@ function applyDocData(d){
     frames:d.frames.map(F=>({dur:clamp((F.dur|0)||100,10,5000)})),
     tags:(Array.isArray(d.tags)?d.tags:[]).map(t=>({name:String(t.name||'Анимация'),from:clamp(t.from|0,0,nf-1),to:clamp(t.to|0,0,nf-1),dir:['forward','reverse','pingpong'].includes(t.dir)?t.dir:'forward',color:/^#[0-9a-f]{6}$/i.test(t.color)?t.color:TAGC[0]})).filter(t=>t.to>=t.from)};
   doc=nd;
+  if(Array.isArray(d.spills))for(const q of d.spills){const c=nd.cels[q.l]&&nd.cels[q.l][q.f];if(c)c.sp={x:q.x,y:q.y,w:q.w,h:q.h,d:q.d}}
   if(Array.isArray(d.palette)){const p=d.palette.filter(x=>/^#[0-9a-f]{6}$/i.test(x)).map(x=>x.toLowerCase());if(p.length)palette=[...new Set(p)]}
   st.layer=0;st.frame=0;st.activeTag=-1;st.float=null;st.sel=null;sizeAux();
 }
@@ -1377,10 +1554,9 @@ async function readAse(buf,opt){
       let c=cels[li][f],guard=0;while(c&&c.link!=null&&guard++<nF+2)c=cels[li][c.link];
       const out=new Uint8ClampedArray(W*H*4);
       if(c&&c.rgba){
-        for(let cy=0;cy<c.h;cy++){const ty=c.y+cy;if(ty<0||ty>=H)continue;
-          for(let cx=0;cx<c.w;cx++){const tx=c.x+cx;if(tx<0||tx>=W)continue;
-            const si=(cy*c.w+cx)*4,a=c.rgba[si+3];if(!a)continue;const di=(ty*W+tx)*4;
-            out[di]=c.rgba[si];out[di+1]=c.rgba[si+1];out[di+2]=c.rgba[si+2];out[di+3]=c.op===255?a:Math.round(a*c.op/255)}}
+        let src=c.rgba;
+        if(c.op!==255){src=new Uint8Array(c.rgba.length);for(let i=0;i<src.length;i+=4){src[i]=c.rgba[i];src[i+1]=c.rgba[i+1];src[i+2]=c.rgba[i+2];src[i+3]=Math.round(c.rgba[i+3]*c.op/255)}}
+        const r=reextent([{x:c.x,y:c.y,w:c.w,h:c.h,d:src}],0,0,W,H,out);if(r.sp)out.sp=r.sp; /* что выходило за холст в файле, остаётся за краем слоя */
       }
       row.push(out);
     }
@@ -1434,11 +1610,13 @@ async function buildAse(D,palHex,deflate){
       }
     }
     for(let l=0;l<D.layers.length;l++){
-      const d=D.cels[l][f];let x0=W,y0=H,x1=-1,y1=-1;
-      for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(d[(y*W+x)*4+3]){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
-      if(x1<0)continue;
+      const d=D.cels[l][f],sp=d.sp||null;let x0=W,y0=H,x1=-1,y1=-1,has=false;
+      for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(d[(y*W+x)*4+3]){has=true;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
+      if(sp){if(!has){x0=sp.x;y0=sp.y;x1=sp.x+sp.w-1;y1=sp.y+sp.h-1}else{x0=Math.min(x0,sp.x);y0=Math.min(y0,sp.y);x1=Math.max(x1,sp.x+sp.w-1);y1=Math.max(y1,sp.y+sp.h-1)}has=true}
+      if(!has)continue;
       const cw=x1-x0+1,ch=y1-y0+1,raw=new Uint8Array(cw*ch*4);
-      for(let y=0;y<ch;y++)raw.set(d.subarray(((y0+y)*W+x0)*4,((y0+y)*W+x0+cw)*4),y*cw*4);
+      if(sp)for(let j=0;j<sp.h;j++)raw.set(sp.d.subarray(j*sp.w*4,(j+1)*sp.w*4),((sp.y+j-y0)*cw+(sp.x-x0))*4); /* ячейка может быть больше холста: как в Aseprite */
+      {const a0=Math.max(0,x0),a1=Math.min(W-1,x1);if(a1>=a0)for(let y=Math.max(0,y0);y<=Math.min(H-1,y1);y++)raw.set(d.subarray((y*W+a0)*4,(y*W+a1+1)*4),((y-y0)*cw+(a0-x0))*4)}
       let z=deflate?await deflate(raw):null;
       chunks.push(chunk(0x2005,w=>{w.u16(l).u16(x0).u16(y0).u8(255).u16(z?2:0).u16(0).zeros(5).u16(cw).u16(ch).bytes(z||raw)}));
     }
@@ -1547,7 +1725,10 @@ function openPalette(){pickFile('',async f=>{const out=[];for(const line of (awa
 function resizeDoc(W,H,anchor,scale){
   const ow=doc.w,oh=doc.h,ax=anchor%3,ay=Math.floor(anchor/3),ox=Math.round((W-ow)*ax/2),oy=Math.round((H-oh)*ay/2);
   doc.cels=doc.cels.map(r=>r.map(c=>{const n=new Uint8ClampedArray(W*H*4);
-    for(let y=0;y<H;y++)for(let x=0;x<W;x++){let sx,sy;if(scale){sx=Math.floor(x*ow/W);sy=Math.floor(y*oh/H)}else{sx=x-ox;sy=y-oy;if(sx<0||sy<0||sx>=ow||sy>=oh)continue}
+    if(!scale){ /* обрезка или расширение: что не поместилось, остаётся за краем слоя и вернётся, если холст снова сделать больше */
+      const parts=[{x:0,y:0,w:ow,h:oh,d:c}];if(c.sp)parts.push(c.sp);
+      const q=reextent(parts,ox,oy,W,H,n);if(q.sp)n.sp=q.sp;return n}
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){const sx=Math.floor(x*ow/W),sy=Math.floor(y*oh/H);
       const si=(sy*ow+sx)*4,di=(y*W+x)*4;n[di]=c[si];n[di+1]=c[si+1];n[di+2]=c[si+2];n[di+3]=c[si+3]}return n}));
   doc.w=W;doc.h=H;sizeAux();
 }
@@ -1582,7 +1763,9 @@ function showHelp(){showModal(`<h2>Жесты и клавиши</h2><dl class="k
   <dt>Тап двумя</dt><dd>Отменить</dd><dt>Тап тремя</dt><dd>Повторить</dd><dt>Тап четырьмя</dt><dd>Спрятать окна и вернуть обратно. То же делает кнопка «Окна» внизу и клавиша Tab</dd>
   <dt>Удержать палец</dt><dd>Пипетка, как в Procreate. Не отпуская, веди пальцем, чтобы выбрать точнее</dd>
   <dt>Один палец</dt><dd>Рисует, пока не коснёшься Pencil. После этого палец двигает холст, а рисует только стилус. Поменять можно в меню «Вид»</dd>
-  <dt>Выделение</dt><dd>Потяни внутри выделения, чтобы сдвинуть его. Тап по выделению снимает его. «Готово» впечатывает сдвинутое</dd>
+  <dt>Выделение</dt><dd>Потяни внутри выделения, чтобы сдвинуть его. Тап по выделению снимает его. Над холстом появляются кнопки «Снять выделение» и «Готово» (оно впечатывает сдвинутое)</dd>
+  <dt>Лассо</dt><dd>Обведи объект с запасом: с включённым «Точно по объекту» выделится только он, без фона вокруг</dd>
+  <dt>Край холста</dt><dd>Слой можно двигать за край холста. Что вышло за край, не пропадает: видно бледным силуэтом, и оно вернётся, если сдвинуть слой назад</dd>
   <dt>Референс</dt><dd>Тяни за верхнюю полоску, размер меняй уголком. Внутри картинку двигают одним пальцем и масштабируют двумя. Удержание на ней берёт цвет</dd>
   <dt>B E G I L U O</dt><dd>Карандаш, ластик, заливка, пипетка, линия, прямоугольник, эллипс</dd>
   <dt>M Q W V T</dt><dd>Выделение, лассо, волшебная палочка, перемещение, текст</dd>
@@ -1740,7 +1923,7 @@ function exportDialog(preset){
 $('#exportBtn').onclick=()=>exportDialog();
 
 /* ---------- storage: IndexedDB, falls back to Claude storage ---------- */
-const VERSION='3.1';
+const VERSION='3.2';
 const IDB=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{try{const r=indexedDB.open('pixelnya',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}}));
   const run=async(mode,fn)=>{const db=await open();return new Promise((res,rej)=>{const t=db.transaction('kv',mode),q=fn(t.objectStore('kv'));t.oncomplete=()=>res(q.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})};
   return{get:k=>run('readonly',s=>s.get(k)),set:(k,v)=>run('readwrite',s=>s.put(v,k)),del:k=>run('readwrite',s=>s.delete(k))}})();
@@ -1780,7 +1963,7 @@ async function saveNow(force){
 function showSaved(ok){const e=$('#stSave');if(!e)return;e.classList.toggle('bad',!ok);e.textContent=ok?'Сохранено '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'Не сохранено!'}
 const flushSave=()=>{clearTimeout(saveTimer);return saveNow()};
 function scheduleAutosave(){dirty=true;clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,1200)}
-function saveUI(){if(booted)kvSet('pixelnya:ui',JSON.stringify({grid:st.grid,gridN:st.gridN,gridZ:st.gridZ,bg:st.bg,tile:st.tile,prevScale:prev.scale,shape:st.shape,touch:st.touch,penSeen,ex:{fmt:st.ex.fmt,scale:st.ex.scale,layout:st.ex.layout},wins:WS}))}
+function saveUI(){if(booted)kvSet('pixelnya:ui',JSON.stringify({grid:st.grid,gridN:st.gridN,gridZ:st.gridZ,bg:st.bg,tile:st.tile,prevScale:prev.scale,shape:st.shape,smart:st.smart,touch:st.touch,penSeen,ex:{fmt:st.ex.fmt,scale:st.ex.scale,layout:st.ex.layout},wins:WS}))}
 function updateTitle(){const b=$('#nameBtn');if(b)b.textContent=cur?cur.name:'Пиксельня'}
 function resetHistory(){undoStack.length=0;redoStack.length=0;updateUndoUI()}
 function enterWork(item,d){
@@ -2000,7 +2183,7 @@ new ResizeObserver(()=>{refs.forEach(placeRef);for(const[id]of WINS)if(WS[id])pl
 /* ---------- start ---------- */
 sizeAux();renderPalette();renderRecent();setTool('pencil');updatePlayUI();
 (async()=>{
-  let ui=null;try{ui=JSON.parse(await kvGet('pixelnya:ui')||'null');if(ui){st.grid=ui.grid!==false;st.gridN=ui.gridN|0;st.gridZ=[12,16,20,24,32].includes(ui.gridZ)?ui.gridZ:20;st.bg=BGS.some(b=>b[0]===ui.bg)?ui.bg:'chk';st.tile=!!ui.tile;st.shape=ui.shape==='round'?'round':'sq';st.touch=['auto','draw','pan'].includes(ui.touch)?ui.touch:'auto';penSeen=!!ui.penSeen;if(ui.ex&&typeof ui.ex==='object'){const e=ui.ex;if(EX_FMTS.includes(e.fmt))st.ex.fmt=e.fmt;if(EX_SCALES.includes(e.scale))st.ex.scale=e.scale;if(['row','grid','tags'].includes(e.layout))st.ex.layout=e.layout}prev.scale=[1,2,4].includes(ui.prevScale)?ui.prevScale:2;winEl('winPrev').querySelector('[data-a="sc"]').textContent='×'+prev.scale}}catch{}
+  let ui=null;try{ui=JSON.parse(await kvGet('pixelnya:ui')||'null');if(ui){st.grid=ui.grid!==false;st.gridN=ui.gridN|0;st.gridZ=[12,16,20,24,32].includes(ui.gridZ)?ui.gridZ:20;st.bg=BGS.some(b=>b[0]===ui.bg)?ui.bg:'chk';st.tile=!!ui.tile;st.shape=ui.shape==='round'?'round':'sq';st.smart=ui.smart!==false;st.touch=['auto','draw','pan'].includes(ui.touch)?ui.touch:'auto';penSeen=!!ui.penSeen;if(ui.ex&&typeof ui.ex==='object'){const e=ui.ex;if(EX_FMTS.includes(e.fmt))st.ex.fmt=e.fmt;if(EX_SCALES.includes(e.scale))st.ex.scale=e.scale;if(['row','grid','tags'].includes(e.layout))st.ex.layout=e.layout}prev.scale=[1,2,4].includes(ui.prevScale)?ui.prevScale:2;winEl('winPrev').querySelector('[data-a="sc"]').textContent='×'+prev.scale}}catch{}
   await loadLib();
   const tryOpen=async id=>{try{const v=await kvGet(projKey(id));if(!v)return false;applyDocData(decodeProject(JSON.parse(v)));cur=lib.items.find(i=>i.id===id);lib.cur=id;st.ex.name=cur.name;return true}catch{return false}};
   let loaded=false;
