@@ -1309,7 +1309,8 @@ function goTo(f){if(st.playing)stopPlay();commitFloat();st.frame=f;frameSelected
 $('#fFirst').onclick=()=>goTo(tagRange()[0]);$('#fLast').onclick=()=>goTo(tagRange()[1]);
 $('#fPrev').onclick=()=>goFrame(-1);$('#fNext').onclick=()=>goFrame(1);
 function syncViewBtns(){$('#gridBtn').setAttribute('aria-pressed',st.grid)}
-$('#gridBtn').onclick=()=>{st.grid=!st.grid;syncViewBtns();saveUI();requestRender()};
+function gridToast(){toast(st.grid?`Сетка пикселей включена: видна с масштаба ${st.gridZ*100}%`:'Сетка пикселей выключена. Включить: кнопка # внизу справа или меню «Вид»')}
+$('#gridBtn').onclick=()=>{st.grid=!st.grid;syncViewBtns();saveUI();requestRender();gridToast()};
 
 /* ---------- input ---------- */
 const ptrs=new Map();let penSeen=false,gesture=null,panning=null,tap=null,touchLock=false,spaceDown=false;
@@ -1565,7 +1566,7 @@ $('#editBtn').onclick=()=>{
 };
 function viewMenu(){
   showModal(`<h2>Вид</h2><div class="menu">
-  <button class="btn" data-v="grid" aria-pressed="${st.grid}">Тонкая сетка пикселей</button>
+  <button class="btn" data-v="grid" aria-pressed="${st.grid}">Тонкая сетка пикселей: ${st.grid?'включена':'выключена'}</button>
   <h3>Сетка пикселей появляется с масштаба</h3>
   <div class="seg">${[12,16,20,24,32].map(n=>`<button class="btn small" data-gz="${n}" aria-pressed="${st.gridZ===n}">${n*100}%</button>`).join('')}</div>
   <h3>Крупная сетка (блоки, тайлы, части спрайта)</h3>
@@ -1593,7 +1594,7 @@ function viewMenu(){
     if(v==='check'){closeModal();setCheck(!CK.on);return}
     if(v==='daily'){st.daily.on=!st.daily.on;saveUI();viewMenu();return}
     if(v==='clean'||v==='mini'){closeModal();setMode(st.mode===v?'normal':v);return}
-    if(v==='grid')st.grid=!st.grid;else if(v==='tile'){st.tile=!st.tile;if(st.tile)toast('Рисунок повторяется по краям. Рисуй через край — продолжится с другой стороны')}
+    if(v==='grid'){st.grid=!st.grid;gridToast()}else if(v==='tile'){st.tile=!st.tile;if(st.tile)toast('Рисунок повторяется по краям. Рисуй через край — продолжится с другой стороны')}
     else if(v==='fit'){closeModal();fitView();return}
     syncViewBtns();saveUI();requestRender();viewMenu()});
   sh.querySelectorAll('[data-w]').forEach(b=>b.onclick=()=>{const id=b.dataset.w;if(id==='reset')resetWins();else{WS[id].hid=!WS[id].hid;if(!WS[id].hid)WS[id].col=false;placeWin(id)}saveUI();viewMenu()});
@@ -2323,7 +2324,7 @@ function exportDialog(preset){
 $('#exportBtn').onclick=()=>exportDialog();
 
 /* ---------- storage: IndexedDB, falls back to Claude storage ---------- */
-const VERSION='3.3';
+const VERSION='3.3.1';
 const IDB=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{try{const r=indexedDB.open('pixelnya',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}}));
   const run=async(mode,fn)=>{const db=await open();return new Promise((res,rej)=>{const t=db.transaction('kv',mode),q=fn(t.objectStore('kv'));t.oncomplete=()=>res(q.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})};
   return{get:k=>run('readonly',s=>s.get(k)),set:(k,v)=>run('readwrite',s=>s.put(v,k)),del:k=>run('readwrite',s=>s.delete(k))}})();
