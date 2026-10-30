@@ -246,6 +246,13 @@ body.m-mini #winTools,body.m-mini #winPal{display:flex!important}
 .daily .dtheme b{font-size:16px;font-weight:600}
 .daily .dstreak{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--ink)}
 .daily .dstreak svg.px{width:16px;height:16px;color:#d9531e}
+/* вставка картинки */
+.inspick{display:flex;gap:8px;flex-wrap:wrap}
+.insprev{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--win2);border:1px solid var(--line);padding:8px;min-height:90px;justify-content:center}
+.insprev canvas{image-rendering:pixelated;background:var(--checker);display:block;max-width:100%}
+.insprev canvas[hidden]{display:none}
+.insopts{display:flex;flex-direction:column;gap:8px}
+.insopts .seg .lbl{min-width:84px}
 /* рампа: тени и света от текущего цвета */
 .rampbox{display:flex;flex-direction:column;gap:4px}
 .ramp-head{display:flex;align-items:center;gap:4px}
@@ -456,7 +463,7 @@ let palette=DEFAULT_PAL.slice(),palIdx=new Map();
 let undoStack=[],redoStack=[];
 let clip=null,selVer=0;
 const st={layer:0,frame:0,tool:'pencil',size:1,pp:true,mx:false,my:false,filled:false,contig:true,shape:'sq',touch:'auto',focus:false,
-  shade:0,dither:0,selMode:'new',smart:true,sel:null,float:null,mode:'normal',flip:false,ramp:{n:5,shift:.6},tlOn:true,daily:{on:true,day:0,shift:0},
+  shade:0,dither:0,selMode:'new',smart:true,sel:null,float:null,mode:'normal',flip:false,ramp:{n:5,shift:.6},tlOn:true,daily:{on:true,day:0,shift:0},ins:{dest:'new',cols:'keep',n:16,hard:true,trace:false},
   primary:[27,33,48,255],secondary:[255,255,255,255],zoom:8,panX:0,panY:0,grid:true,gridN:0,gridZ:20,bg:'chk',tile:false,onion:false,playing:false,activeTag:-1,ants:0,
   ex:{fmt:'png',scale:4,layout:'row',scope:'all',name:'sprite'},text:{text:'Текст',font:0,size:8}};
 const cel=(l=st.layer,f=st.frame)=>doc.cels[l][f];
@@ -1391,7 +1398,7 @@ addEventListener('keydown',e=>{
   if(mod&&e.code==='KeyS'){e.preventDefault();saveDialog();return}
   if(mod&&e.code==='KeyC'){e.preventDefault();ACT.copy();return}
   if(mod&&e.code==='KeyX'){e.preventDefault();ACT.cut();return}
-  if(mod&&e.code==='KeyV'){e.preventDefault();ACT.paste();return}
+  if(mod&&e.code==='KeyV'){if(clip){e.preventDefault();ACT.paste()}return}
   if(mod&&e.code==='KeyA'){e.preventDefault();ACT.selall();return}
   if(mod&&e.code==='KeyD'){e.preventDefault();ACT.deselect();return}
   if(mod&&e.shiftKey&&e.code==='KeyI'){e.preventDefault();ACT.invert();return}
@@ -1550,11 +1557,153 @@ function motionDialog(){
 }
 $('#mvBtn').onclick=motionDialog;
 
+/* ---------- вставка картинки на холст ----------
+   Картинку из «Фото», файлов или буфера уменьшаем (или нет) под холст, по желанию делаем пиксельной
+   (цвета палитры или свои 8/16/32, без полупрозрачных пикселей) и кладём «в руку» новым слоем или на текущий */
+const DEC_MAX=2048;
+async function decodeImageBlob(blob){
+  let src=null,w=0,h=0;
+  try{if(window.createImageBitmap){src=await createImageBitmap(blob);w=src.width;h=src.height}}catch{src=null}
+  if(!src){const url=URL.createObjectURL(blob);try{src=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('img'));i.src=url});w=src.naturalWidth;h=src.naturalHeight}finally{setTimeout(()=>URL.revokeObjectURL(url),1000)}}
+  if(!w||!h)throw new Error('empty');
+  /* большие фото уменьшаем ступенями по половине: так и качество лучше, и айпад не упирается в предел размера холста */
+  let cur=src,cw=w,ch=h;const s=Math.min(1,DEC_MAX/Math.max(w,h)),tw=Math.max(1,Math.round(w*s)),th=Math.max(1,Math.round(h*s));
+  while(cw/2>=tw*1.5&&ch/2>=th*1.5&&(cw/2)*(ch/2)<=16e6){const c=document.createElement('canvas');c.width=Math.round(cw/2);c.height=Math.round(ch/2);const x=c.getContext('2d');x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(cur,0,0,c.width,c.height);cur=c;cw=c.width;ch=c.height}
+  const c=document.createElement('canvas');c.width=tw;c.height=th;const x=c.getContext('2d',{willReadFrequently:true});x.imageSmoothingEnabled=s<1;x.imageSmoothingQuality='high';x.drawImage(cur,0,0,tw,th);
+  try{if(src.close)src.close()}catch{}
+  return{w:tw,h:th,ow:w,oh:h,d:x.getImageData(0,0,tw,th).data,scaled:s<1}}
+/* увеличенный пиксель-арт (каждый пиксель нарисован квадратом k×k): находим k, чтобы вернуть настоящие пиксели */
+function upscaleFactor(d,w,h){
+  const gcd2=(a,b)=>{while(b)[a,b]=[b,a%b];return a};let g=0;
+  const diff=(i,j)=>d[i]!==d[j]||d[i+1]!==d[j+1]||d[i+2]!==d[j+2]||d[i+3]!==d[j+3];
+  for(let y=0;y<h;y++){const r=y*w*4;for(let x=1;x<w;x++)if(diff(r+(x-1)*4,r+x*4)){g=gcd2(g,x);if(g===1)return 1}}
+  for(let x=0;x<w;x++)for(let y=1;y<h;y++)if(diff(((y-1)*w+x)*4,(y*w+x)*4)){g=gcd2(g,y);if(g===1)return 1}
+  if(!g)return 1;g=gcd2(gcd2(g,w),h);return g>1?g:1}
+function countColors(d,limit){const s=new Set();for(let i=0;i<d.length;i+=4){if(d[i+3]<8)continue;s.add((d[i]<<16)|(d[i+1]<<8)|d[i+2]);if(s.size>limit)break}return s.size}
+function resampleNearest(src,sw,sh,tw,th){const out=new Uint8ClampedArray(tw*th*4);
+  for(let y=0;y<th;y++){const sy=Math.min(sh-1,Math.floor((y+.5)*sh/th));for(let x=0;x<tw;x++){const sx=Math.min(sw-1,Math.floor((x+.5)*sw/tw)),k=(sy*sw+sx)*4,o=(y*tw+x)*4;out[o]=src[k];out[o+1]=src[k+1];out[o+2]=src[k+2];out[o+3]=src[k+3]}}return out}
+/* мягкое уменьшение: каждый новый пиксель — среднее всех исходных, которые он накрывает (с учётом прозрачности) */
+function resampleArea(src,sw,sh,tw,th){const out=new Uint8ClampedArray(tw*th*4),fx=sw/tw,fy=sh/th;
+  for(let y=0;y<th;y++){const y0=y*fy,y1=y0+fy,j0=Math.floor(y0),j1=Math.min(sh,Math.ceil(y1));
+    for(let x=0;x<tw;x++){const x0=x*fx,x1=x0+fx,i0=Math.floor(x0),i1=Math.min(sw,Math.ceil(x1));let r=0,g=0,b=0,a=0,ws=0;
+      for(let j=j0;j<j1;j++){const wy=Math.min(j+1,y1)-Math.max(j,y0);if(wy<=0)continue;
+        for(let i=i0;i<i1;i++){const wx=Math.min(i+1,x1)-Math.max(i,x0);if(wx<=0)continue;const w=wx*wy,k=(j*sw+i)*4,al=src[k+3]*w;r+=src[k]*al;g+=src[k+1]*al;b+=src[k+2]*al;a+=al;ws+=w}}
+      const o=(y*tw+x)*4;if(a>0){out[o]=r/a;out[o+1]=g/a;out[o+2]=b/a;out[o+3]=a/ws}}}
+  return out}
+const okd=(p,q)=>{const a=p[0]-q[0],b=p[1]-q[1],c=p[2]-q[2];return a*a+b*b+c*c};
+/* свои N цветов: k-средних в OKLab по цветам картинки (с учётом того, сколько каждого цвета) */
+function kmeansColors(d,n){
+  const bins=new Map();
+  for(let i=0;i<d.length;i+=4){if(d[i+3]<128)continue;const k=((d[i]>>3)<<10)|((d[i+1]>>3)<<5)|(d[i+2]>>3);const e=bins.get(k);if(e){e[0]+=d[i];e[1]+=d[i+1];e[2]+=d[i+2];e[3]++}else bins.set(k,[d[i],d[i+1],d[i+2],1])}
+  const cols=[...bins.values()].map(e=>[e[0]/e[3],e[1]/e[3],e[2]/e[3]]),cnt=[...bins.values()].map(e=>e[3]);
+  if(!cols.length)return[];
+  const exact=new Set();for(let i=0;i<d.length;i+=4)if(d[i+3]>=128){exact.add((d[i]<<16)|(d[i+1]<<8)|d[i+2]);if(exact.size>n)break}
+  if(exact.size<=n)return[...exact].map(k=>[k>>16&255,k>>8&255,k&255]);
+  const Pk=cols.map(c=>toOk(c)),N=Pk.length;let seed=12345;const rnd=()=>(seed=(seed*1103515245+12345)&0x7fffffff)/0x7fffffff;
+  let best=0;for(let i=1;i<N;i++)if(cnt[i]>cnt[best])best=i;const C=[Pk[best].slice()],dist=new Float64Array(N).fill(Infinity);
+  while(C.length<n){const c=C[C.length-1];let sum=0;for(let i=0;i<N;i++){const q=okd(Pk[i],c);if(q<dist[i])dist[i]=q;sum+=dist[i]*cnt[i]}if(sum<=1e-12)break;
+    let r=rnd()*sum,i=0;for(;i<N-1;i++){r-=dist[i]*cnt[i];if(r<=0)break}C.push(Pk[i].slice())}
+  const asg=new Int32Array(N).fill(-1);
+  for(let it=0;it<14;it++){const acc=C.map(()=>[0,0,0,0]);let moved=false;
+    for(let i=0;i<N;i++){let bi=0,bd=Infinity;for(let k=0;k<C.length;k++){const q=okd(Pk[i],C[k]);if(q<bd){bd=q;bi=k}}if(asg[i]!==bi){asg[i]=bi;moved=true}const a=acc[bi],w=cnt[i];a[0]+=Pk[i][0]*w;a[1]+=Pk[i][1]*w;a[2]+=Pk[i][2]*w;a[3]+=w}
+    C.forEach((c,k)=>{const a=acc[k];if(a[3]){c[0]=a[0]/a[3];c[1]=a[1]/a[3];c[2]=a[2]/a[3]}});if(!moved)break}
+  const out=[],seen=new Set();for(const c of C){const rgb=lchRgb(c[0],Math.hypot(c[1],c[2]),Math.atan2(c[2],c[1])),k=(rgb[0]<<16)|(rgb[1]<<8)|rgb[2];if(!seen.has(k)){seen.add(k);out.push(rgb.slice(0,3))}}
+  return out}
+function mapToColors(d,centers){if(!centers.length)return;const P=centers.map(c=>toOk(c)),cache=new Map();
+  for(let i=0;i<d.length;i+=4){if(!d[i+3])continue;const key=(d[i]<<16)|(d[i+1]<<8)|d[i+2];let k=cache.get(key);
+    if(k===undefined){const q=toOk([d[i],d[i+1],d[i+2]]);let bd=Infinity;k=0;for(let j=0;j<P.length;j++){const e=okd(q,P[j]);if(e<bd){bd=e;k=j}}cache.set(key,k)}
+    const c=centers[k];d[i]=c[0];d[i+1]=c[1];d[i+2]=c[2]}}
+/* собрать итоговую картинку по настройкам окна */
+function insBuild(S,o){
+  const k=S.k,bw=S.w/k,bh=S.h/k;let tw,th,data;
+  if(o.size==='asis'){tw=bw;th=bh;data=k>1?resampleNearest(S.d,S.w,S.h,tw,th):new Uint8ClampedArray(S.d)}
+  else{
+    if(o.size==='fit'){const sc=Math.min(doc.w/bw,doc.h/bh);if(sc>=1){const f=Math.max(1,Math.floor(sc));tw=bw*f;th=bh*f}else{tw=Math.max(1,Math.round(bw*sc));th=Math.max(1,Math.round(bh*sc))}}
+    else{tw=clamp(Math.round(o.w)||1,1,DEC_MAX);th=Math.max(1,Math.round(tw*bh/bw))}
+    const base=k>1?resampleNearest(S.d,S.w,S.h,bw,bh):S.d;
+    data=(tw>=bw||o.rs==='sharp')?resampleNearest(base,bw,bh,tw,th):resampleArea(base,bw,bh,tw,th)}
+  if(o.hard||o.cols!=='keep')for(let i=3;i<data.length;i+=4)data[i]=data[i]>=128?255:0;
+  if(o.cols==='pal')mapToColors(data,palette.map(rgbOf));
+  else if(o.cols==='auto')mapToColors(data,kmeansColors(data,o.n));
+  return{w:tw,h:th,data}}
+async function clipboardImage(){
+  try{if(!navigator.clipboard||!navigator.clipboard.read)return null;const items=await navigator.clipboard.read();
+    for(const it of items){const t=(it.types||[]).find(x=>/^image\//.test(x));if(t)return await it.getType(t)}}catch{}
+  return null}
+function placeImage(R,o,name){
+  if(!R||!R.w||!R.h)return;
+  const mask=new Uint8Array(R.w*R.h);let any=false;for(let i=0;i<mask.length;i++)if(R.data[i*4+3]){mask[i]=1;any=true}
+  if(!any){toast('Картинка получилась пустой: в ней только прозрачность');return}
+  if(o.dest==='new'){const nm=(String(name||'').replace(/\.[^.]+$/,'').trim()||'Картинка').slice(0,40);
+    docOp(()=>{const i=st.layer+1;doc.layers.splice(i,0,{...newLayer(nm),opacity:o.trace?.4:1});doc.cels.splice(i,0,doc.frames.map(blankCel));st.layer=i})}
+  else{commitFloat();if(stopIfHidden())return}
+  newFloat({x:Math.round((doc.w-R.w)/2),y:Math.round((doc.h-R.h)/2),w:R.w,h:R.h,data:R.data,mask});
+  if(!KEEP_FLOAT.includes(st.tool)||st.tool==='picker')setTool('move');
+  renderOptions();requestRender();
+  toast(R.w>doc.w||R.h>doc.h?'Картинка в руке. Она больше холста: подвинь нужную часть и нажми «Готово»':'Картинка в руке: передвинь её и нажми «Готово»')}
+function insertDialog(blob,name){
+  if(st.playing)stopPlay();commitFloat();
+  const o={...st.ins,size:'fit',rs:'soft',w:0};let S=null,busy=false,R=null;
+  const load=async(b,nm)=>{if(!b){toast('Картинка не нашлась');return}busy=true;$('#insInfo').textContent='Открываю…';
+    try{const D=await decodeImageBlob(b);D.k=D.scaled?1:upscaleFactor(D.d,D.w,D.h);const few=countColors(D.d,256)<=256;
+      S=D;name=nm||name||'Картинка';const bw=D.w/D.k,bh=D.h/D.k;
+      o.size=(D.k>1||(bw<=doc.w&&bh<=doc.h))?'asis':'fit';o.rs=(D.k>1||few)?'sharp':'soft';o.w=Math.min(bw,Math.max(doc.w,1));
+      busy=false;sync()}catch{S=null;busy=false;$('#insInfo').textContent='Не получилось открыть эту картинку';toast('Не получилось открыть эту картинку')}
+    busy=false};
+  showModal(`<h2>Вставить картинку</h2>
+  <div class="inspick"><button class="btn" id="insFile">Фото или файл…</button><button class="btn" id="insClip">Из буфера</button></div>
+  <div class="insprev"><canvas id="insCv" hidden></canvas><p class="hint" id="insInfo">Выбери картинку: из «Фото», из файлов или ту, что скопирована.</p></div>
+  <div class="insopts">
+  <div class="seg"><span class="lbl">Куда</span><button class="btn small" data-io="dest" data-v="new">Новым слоем</button><button class="btn small" data-io="dest" data-v="cur">На текущий слой</button></div>
+  <div class="seg"><span class="lbl">Размер</span><button class="btn small" data-io="size" data-v="asis">Как есть</button><button class="btn small" data-io="size" data-v="fit">По холсту</button><button class="btn small" data-io="size" data-v="own">Свой</button><span id="insOwn"><input type="number" class="field num" id="insW" min="1" max="${DEC_MAX}" style="width:80px"> <span class="lbl" id="insH"></span></span></div>
+  <div class="seg" id="insRsRow"><span class="lbl">Уменьшать</span><button class="btn small" data-io="rs" data-v="sharp">Чётко</button><button class="btn small" data-io="rs" data-v="soft">Мягко</button></div>
+  <div class="seg"><span class="lbl">Цвета</span><button class="btn small" data-io="cols" data-v="keep">Как есть</button><button class="btn small" data-io="cols" data-v="pal">Из палитры</button><button class="btn small" data-io="cols" data-v="auto">Свои</button><select class="field" id="insN" aria-label="Сколько цветов">${[4,8,16,32,64].map(v=>`<option value="${v}">${v}</option>`).join('')}</select></div>
+  <label class="check"><input type="checkbox" id="insHard"> Чёткие края: без полупрозрачных пикселей</label>
+  <label class="check" id="insTraceRow"><input type="checkbox" id="insTrace"> Полупрозрачный слой: удобно обводить новым слоем поверх</label>
+  </div>
+  <div class="actions"><button class="btn" data-close>Отмена</button><button class="btn primary" id="insGo" disabled>Вставить</button></div>`);
+  const sh=$('#sheet');
+  const sync=()=>{
+    sh.querySelectorAll('[data-io]').forEach(b=>b.setAttribute('aria-pressed',String(o[b.dataset.io])===b.dataset.v));
+    $('#insN').value=String(o.n);$('#insN').disabled=o.cols!=='auto';$('#insHard').checked=o.hard||o.cols!=='keep';$('#insHard').disabled=o.cols!=='keep';
+    $('#insTrace').checked=o.trace;$('#insTraceRow').style.display=o.dest==='new'?'':'none';
+    $('#insOwn').style.display=o.size==='own'?'':'none';
+    const go=$('#insGo');
+    if(!S){go.disabled=true;$('#insRsRow').style.display='none';return}
+    const bw=S.w/S.k,bh=S.h/S.k;
+    if(o.size==='asis'&&(bw>DEC_MAX||bh>DEC_MAX))o.size='fit';
+    if(o.size==='own'){if(document.activeElement!==$('#insW'))$('#insW').value=String(o.w||bw);$('#insH').textContent='×'+Math.max(1,Math.round((o.w||bw)*bh/bw))}
+    R=insBuild(S,o);
+    const down=o.size!=='asis'&&R.w<bw;$('#insRsRow').style.display=down?'':'none';
+    const cv=$('#insCv'),fit=Math.min(380/R.w,200/R.h),sc=fit>=1?Math.min(16,Math.floor(fit)):fit;
+    cv.hidden=false;cv.width=R.w;cv.height=R.h;cv.style.width=Math.max(1,Math.round(R.w*sc))+'px';cv.style.height=Math.max(1,Math.round(R.h*sc))+'px';
+    cv.getContext('2d').putImageData(new ImageData(R.data,R.w,R.h),0,0);
+    const nc=countColors(R.data,100000);
+    let t=`${S.ow}×${S.oh} → станет ${R.w}×${R.h}, ${plural(nc,['цвет','цвета','цветов'])}.`;
+    if(S.k>1)t+=` Это увеличенный пиксель-арт (×${S.k}): «Как есть» вернёт его настоящие пиксели.`;
+    if(R.w>doc.w||R.h>doc.h)t+=` Больше холста (${doc.w}×${doc.h}): лишнее уйдёт за край, его можно будет подвинуть.`;
+    $('#insInfo').textContent=t;go.disabled=busy};
+  sh.querySelectorAll('[data-io]').forEach(b=>b.onclick=()=>{const k=b.dataset.io;o[k]=b.dataset.v;if(k==='size'&&o.size==='own'&&S&&!o.w)o.w=S.w/S.k;sync()});
+  $('#insN').onchange=e=>{o.n=+e.target.value;sync()};
+  $('#insHard').onchange=e=>{o.hard=e.target.checked;sync()};
+  $('#insTrace').onchange=e=>{o.trace=e.target.checked;sync()};
+  $('#insW').oninput=e=>{const v=Math.round(+e.target.value);if(v>=1){o.w=clamp(v,1,DEC_MAX);sync()}};
+  $('#insFile').onclick=()=>pickFile('image/*',f=>load(f,f.name));
+  $('#insClip').onclick=async()=>{const b=await clipboardImage();if(b)load(b,'Из буфера');else toast('В буфере нет картинки. Скопируй её (например, в «Фото»: Поделиться → Скопировать) и нажми ещё раз')};
+  $('#insGo').onclick=()=>{if(!S||!R)return;st.ins={dest:o.dest,cols:o.cols,n:o.n,hard:o.hard,trace:o.trace};saveUI();const res=R,nm=name;closeModal();placeImage(res,o,nm)};
+  sync();if(blob)load(blob,name);
+}
+/* ⌘V с клавиатурой: своя вставка, если что-то скопировано внутри Пиксельни, иначе картинка из системного буфера */
+document.addEventListener('paste',e=>{if(!$('#modal').hidden||e.target.matches&&e.target.matches('input,textarea'))return;
+  const f=[...((e.clipboardData&&e.clipboardData.files)||[])].find(x=>/^image\//.test(x.type));
+  if(f){e.preventDefault();insertDialog(f,f.name||'Из буфера')}else ACT.paste()});
+
 /* ---------- edit & view menus ---------- */
 $('#editBtn').onclick=()=>{
   const has=!!(st.sel||st.float);
   const b=(a,l,dis)=>`<button class="btn" data-e="${a}" ${dis?'disabled':''}>${l}</button>`;
   showModal(`<h2>Правка</h2><div class="menu">
+  ${b('image','Вставить картинку… (фото, файл, буфер)')}
   ${b('copy','Копировать')}${b('cut','Вырезать')}${b('paste','Вставить',!clip)}${b('del','Удалить выделенное',!has)}
   <h3>Выделение</h3>${b('selall','Выделить всё')}${b('deselect','Снять выделение',!has)}${b('invert','Инвертировать')}
   <h3>Отразить и повернуть (выделенное или весь слой)</h3>${b('flipH','Отразить по горизонтали')}${b('flipV','Отразить по вертикали')}${b('rot','Повернуть на 90°')}
@@ -1562,7 +1711,7 @@ $('#editBtn').onclick=()=>{
   <h3>Анимация</h3>${b('motion','Движение слоёв…')}</div>
   <div class="actions"><button class="btn" data-close>Закрыть</button></div>`);
   $('#sheet').querySelectorAll('[data-e]').forEach(x=>x.onclick=()=>{const a=x.dataset.e;closeModal();
-    if(a==='replace')replaceDialog();else if(a==='outline')outlineDialog();else if(a==='adjust')adjustDialog();else if(a==='motion')motionDialog();else ACT[a]()});
+    if(a==='replace')replaceDialog();else if(a==='outline')outlineDialog();else if(a==='adjust')adjustDialog();else if(a==='motion')motionDialog();else if(a==='image')insertDialog();else ACT[a]()});
 };
 function viewMenu(){
   showModal(`<h2>Вид</h2><div class="menu">
@@ -2023,7 +2172,9 @@ const openFile=()=>pickFile('',loadFileObj);
 /* перетаскивание файлов на окно (например, из приложения «Файлы» в режиме Split View) */
 addEventListener('dragover',e=>{if(e.dataTransfer&&[...(e.dataTransfer.types||[])].includes('Files'))e.preventDefault()});
 addEventListener('drop',e=>{const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];if(!f)return;e.preventDefault();
-  if(/^image\//.test(f.type)&&!/\.(aseprite|ase)$/i.test(f.name)){addRefFile(f);toast('Картинка добавлена как референс');return}
+  if(/^image\//.test(f.type)&&!/\.(aseprite|ase)$/i.test(f.name)){
+    showModal(`<h2>Что сделать с картинкой?</h2><p class="hint">${esc(f.name||'Картинка')}</p><div class="menu"><button class="btn" id="dpCanvas">Вставить на холст…</button><button class="btn" id="dpRef">Открыть как референс рядом с холстом</button></div><div class="actions"><button class="btn" data-close>Отмена</button></div>`);
+    $('#dpCanvas').onclick=()=>insertDialog(f,f.name);$('#dpRef').onclick=()=>{closeModal();addRefFile(f);toast('Картинка добавлена как референс')};return}
   loadFileObj(f)});
 let palBackup=null;
 function setPalette(list,msg){palBackup=palette.slice();palette=[...new Set(list.map(h=>h.toLowerCase()))];renderPalette();scheduleAutosave();if(msg)toast(msg)}
@@ -2132,6 +2283,7 @@ function showHelp(){showModal(`<h2>Жесты и клавиши</h2><dl class="k
   <dt>Пиксель-чек</dt><dd>Кнопка с лупой внизу: подсвечивает одиночные пиксели, лишние углы, неровные ступеньки, похожие цвета; есть просмотр в Ч/Б и силуэтом</dd>
   <dt>Движение</dt><dd>Кнопка «Движение…» внизу: слой сам едет кадр за кадром, например облака. Видно при проигрывании и в GIF</dd>
   <dt>Таймлапс</dt><dd>Файл → «Таймлапс этой работы»: ролик о том, как рисовалась работа, в GIF или видео</dd>
+  <dt>Картинка на холст</dt><dd>Правка → «Вставить картинку»: из «Фото», файла или буфера. Новым слоем или на текущий, по размеру холста или как есть, можно сразу сделать пиксельной. ⌘V с клавиатурой тоже вставляет скопированную картинку</dd>
   <dt>Референс</dt><dd>Тяни за верхнюю полоску, размер меняй уголком. Внутри картинку двигают одним пальцем и масштабируют двумя. Удержание на ней берёт цвет</dd>
   <dt>B E G I L U O</dt><dd>Карандаш, ластик, заливка, пипетка, линия, прямоугольник, эллипс</dd>
   <dt>M Q W V T</dt><dd>Выделение, лассо, волшебная палочка, перемещение, текст</dd>
@@ -2147,10 +2299,11 @@ function showHelp(){showModal(`<h2>Жесты и клавиши</h2><dl class="k
 $('#fileBtn').onclick=()=>{
   showModal(`<h2>Файл</h2><div class="menu">
   <button class="btn" data-m="new">Новый холст…</button><button class="btn" data-m="size">Размер холста…</button>
-  <button class="btn" data-m="open">Открыть файл… (.aseprite, проект или картинка)</button><button class="btn" data-m="save">Сохранить как… (PNG, GIF, Aseprite)</button>
+  <button class="btn" data-m="open">Открыть файл… (.aseprite, проект или картинка)</button><button class="btn" data-m="img">Вставить картинку на холст…</button><button class="btn" data-m="save">Сохранить как… (PNG, GIF, Aseprite)</button>
   <button class="btn" data-m="tl">Таймлапс этой работы…</button><button class="btn" data-m="pal">Загрузить палитру (.hex, .gpl)…</button><button class="btn" data-m="help">Жесты и клавиши</button></div>
   <div class="actions"><button class="btn" data-close>Закрыть</button></div>`);
   $('#sheet').querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{const m=b.dataset.m;
+    if(m==='img'){insertDialog();return}
     if(m==='new')sizeDialog('new');else if(m==='size')sizeDialog('resize');else if(m==='tl'){if(cur)tlDialog(cur.id)}else if(m==='save')exportDialog();else if(m==='help')showHelp();
     else{closeModal();if(m==='open')openFile();else if(m==='pal')openPalette()}});
 };
@@ -2324,7 +2477,7 @@ function exportDialog(preset){
 $('#exportBtn').onclick=()=>exportDialog();
 
 /* ---------- storage: IndexedDB, falls back to Claude storage ---------- */
-const VERSION='3.3.1';
+const VERSION='3.4';
 const IDB=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{try{const r=indexedDB.open('pixelnya',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}}));
   const run=async(mode,fn)=>{const db=await open();return new Promise((res,rej)=>{const t=db.transaction('kv',mode),q=fn(t.objectStore('kv'));t.oncomplete=()=>res(q.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})};
   return{get:k=>run('readonly',s=>s.get(k)),set:(k,v)=>run('readwrite',s=>s.put(v,k)),del:k=>run('readwrite',s=>s.delete(k))}})();
@@ -2364,7 +2517,7 @@ async function saveNow(force){
 function showSaved(ok){const e=$('#stSave');if(!e)return;e.classList.toggle('bad',!ok);e.textContent=ok?'Сохранено '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'Не сохранено!'}
 const flushSave=()=>{clearTimeout(saveTimer);return saveNow()};
 function scheduleAutosave(){dirty=true;clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,1200)}
-function saveUI(){if(booted)kvSet('pixelnya:ui',JSON.stringify({grid:st.grid,gridN:st.gridN,gridZ:st.gridZ,bg:st.bg,tile:st.tile,prevScale:prev.scale,shape:st.shape,smart:st.smart,mode:st.mode,ramp:st.ramp,tlOn:st.tlOn,daily:st.daily,touch:st.touch,penSeen,ex:{fmt:st.ex.fmt,scale:st.ex.scale,layout:st.ex.layout},wins:WS}))}
+function saveUI(){if(booted)kvSet('pixelnya:ui',JSON.stringify({grid:st.grid,gridN:st.gridN,gridZ:st.gridZ,bg:st.bg,tile:st.tile,prevScale:prev.scale,shape:st.shape,smart:st.smart,ins:st.ins,mode:st.mode,ramp:st.ramp,tlOn:st.tlOn,daily:st.daily,touch:st.touch,penSeen,ex:{fmt:st.ex.fmt,scale:st.ex.scale,layout:st.ex.layout},wins:WS}))}
 function updateTitle(){const b=$('#nameBtn');if(b)b.textContent=cur?cur.name:'Пиксельня'}
 function resetHistory(){undoStack.length=0;redoStack.length=0;updateUndoUI()}
 function enterWork(item,d){
@@ -2719,7 +2872,7 @@ function setPrevBtn(){const b=winEl('winPrev').querySelector('[data-a="play"]');
 setPrevBtn();
 new ResizeObserver(()=>{refs.forEach(placeRef);for(const[id]of WINS)if(WS[id])placeWin(id)}).observe(stage);
 
-function readUI(ui){st.grid=ui.grid!==false;st.gridN=ui.gridN|0;st.gridZ=[12,16,20,24,32].includes(ui.gridZ)?ui.gridZ:20;st.bg=BGS.some(b=>b[0]===ui.bg)?ui.bg:'chk';st.tile=!!ui.tile;st.shape=ui.shape==='round'?'round':'sq';st.smart=ui.smart!==false;if(ui.ramp&&[3,5,7,9].includes(ui.ramp.n))st.ramp={n:ui.ramp.n,shift:clamp(+ui.ramp.shift||0,0,1)};st.touch=['auto','draw','pan'].includes(ui.touch)?ui.touch:'auto';penSeen=!!ui.penSeen;if(ui.ex&&typeof ui.ex==='object'){const e=ui.ex;if(EX_FMTS.includes(e.fmt))st.ex.fmt=e.fmt;if(EX_SCALES.includes(e.scale))st.ex.scale=e.scale;if(['row','grid','tags'].includes(e.layout))st.ex.layout=e.layout}prev.scale=[1,2,4].includes(ui.prevScale)?ui.prevScale:2;winEl('winPrev').querySelector('[data-a="sc"]').textContent='×'+prev.scale;st.tlOn=ui.tlOn!==false;if(ui.daily&&typeof ui.daily==='object')st.daily={on:ui.daily.on!==false,day:ui.daily.day|0,shift:ui.daily.shift|0}}
+function readUI(ui){st.grid=ui.grid!==false;st.gridN=ui.gridN|0;st.gridZ=[12,16,20,24,32].includes(ui.gridZ)?ui.gridZ:20;st.bg=BGS.some(b=>b[0]===ui.bg)?ui.bg:'chk';st.tile=!!ui.tile;st.shape=ui.shape==='round'?'round':'sq';st.smart=ui.smart!==false;if(ui.ramp&&[3,5,7,9].includes(ui.ramp.n))st.ramp={n:ui.ramp.n,shift:clamp(+ui.ramp.shift||0,0,1)};st.touch=['auto','draw','pan'].includes(ui.touch)?ui.touch:'auto';penSeen=!!ui.penSeen;if(ui.ex&&typeof ui.ex==='object'){const e=ui.ex;if(EX_FMTS.includes(e.fmt))st.ex.fmt=e.fmt;if(EX_SCALES.includes(e.scale))st.ex.scale=e.scale;if(['row','grid','tags'].includes(e.layout))st.ex.layout=e.layout}prev.scale=[1,2,4].includes(ui.prevScale)?ui.prevScale:2;winEl('winPrev').querySelector('[data-a="sc"]').textContent='×'+prev.scale;st.tlOn=ui.tlOn!==false;if(ui.ins&&typeof ui.ins==='object'){const q=ui.ins;st.ins={dest:q.dest==='cur'?'cur':'new',cols:['keep','pal','auto'].includes(q.cols)?q.cols:'keep',n:[4,8,16,32,64].includes(q.n)?q.n:16,hard:q.hard!==false,trace:!!q.trace}}if(ui.daily&&typeof ui.daily==='object')st.daily={on:ui.daily.on!==false,day:ui.daily.day|0,shift:ui.daily.shift|0}}
 /* ---------- start ---------- */
 sizeAux();renderPalette();renderRecent();setTool('pencil');updatePlayUI();
 (async()=>{
