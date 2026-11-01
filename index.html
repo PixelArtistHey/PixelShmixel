@@ -364,6 +364,7 @@ body.m-mini #winTools,body.m-mini #winPal{display:flex!important}
       <button class="btn icon" id="gridBtn" data-icon="grid" aria-pressed="true" aria-label="Сетка" title="Сетка"></button>
       <button class="btn icon" id="onionBtn" data-icon="onion" aria-pressed="false" aria-label="Калька" title="Калька"></button>
       <button class="btn icon" id="checkBtn" data-icon="check" aria-pressed="false" aria-label="Пиксель-чек" title="Пиксель-чек: подсказки по рисунку"></button>
+      <button class="btn icon" id="ghostBtn" data-icon="edge" aria-pressed="true" aria-label="Показывать то, что за краем холста" title="Показывать то, что за краем холста"></button>
       <button class="btn icon" id="flipBtn" data-icon="flip" aria-pressed="false" aria-label="Отразить вид" title="Отразить вид, только на экране (F)"></button>
     </span>
   </div>
@@ -422,6 +423,8 @@ ICONS.mini=["#########","#.#.....#","###.....#","#.#.....#","###.....#","#.#....
 ICONS.check=["..####...",".#....#..","#......#.","#......#.","#......#.",".#....#..","..####...","......##.",".......##"];
 ICONS.drift=[".........","....#....","....##...","#######..","########.","#######..","....##...","....#....","........."];
 ICONS.flame=["....#....","...##....","..###.#..","..#####..",".#######.",".###.###.",".##...##.","..#...#..","...###..."];
+ICONS.pic=["#########","#.......#","#.##....#","#.##..#.#","#....####","#.#.#####","#########",".........","........."];
+ICONS.edge=["#########","#.......#","#.#####.#","#.#...#.#","#.#...#.#","#.#...#.#","#.#####.#","#.......#","#########"];
 ICONS.flip=["....#....","#...#...#","##..#..##","###.#.###","###.#.###","###.#.###","##..#..##","#...#...#","....#...."];
 ICONS.redo=ICONS.undo.map(r=>[...r].reverse().join(''));ICONS.next=ICONS.prev.map(r=>[...r].reverse().join(''));ICONS.last=ICONS.first.map(r=>[...r].reverse().join(''));
 function icon(n){const rows=ICONS[n];let r='';rows.forEach((row,y)=>{for(let x=0;x<row.length;x++)if(row[x]==='#')r+=`<rect x="${x}" y="${y}" width="1" height="1"/>`});return `<svg class="px" viewBox="0 0 ${rows[0].length} ${rows.length}" aria-hidden="true">${r}</svg>`}
@@ -466,7 +469,7 @@ let palette=DEFAULT_PAL.slice(),palIdx=new Map();
 let undoStack=[],redoStack=[];
 let clip=null,selVer=0;
 const st={layer:0,frame:0,tool:'pencil',size:1,pp:true,mx:false,my:false,filled:false,contig:true,shape:'sq',touch:'auto',focus:false,
-  shade:0,dither:0,selMode:'new',smart:true,sel:null,float:null,mode:'normal',flip:false,ramp:{n:5,shift:.6},tlOn:true,daily:{on:true,day:0,shift:0},ins:{dest:'new',cols:'keep',n:16,hard:true,trace:false},
+  shade:0,dither:0,selMode:'new',smart:true,sel:null,float:null,mode:'normal',flip:false,ramp:{n:5,shift:.6},tlOn:true,ghost:true,daily:{on:true,day:0,shift:0},ins:{dest:'new',cols:'keep',n:16,hard:true,trace:false},
   primary:[27,33,48,255],secondary:[255,255,255,255],zoom:8,panX:0,panY:0,grid:true,gridN:0,gridZ:20,bg:'chk',tile:false,onion:false,playing:false,activeTag:-1,ants:0,
   ex:{fmt:'png',scale:4,layout:'row',scope:'all',name:'sprite'},text:{text:'Текст',font:0,size:8}};
 const cel=(l=st.layer,f=st.frame)=>doc.cels[l][f];
@@ -618,7 +621,7 @@ function drawCanvasAt(c,cx,cy,cw,ch,x0,y0,z){
   if(a2<=a||b2<=b)return;vctx.drawImage(c,a,b,a2-a,b2-b,x0+(cx+a)*z,y0+(cy+b)*z,(a2-a)*z,(b2-b)*z);
 }
 function drawGhosts(x0,y0,z,dw,dh){
-  if(st.tile)return;const F=st.float,sp=cel().sp,L=doc.layers[st.layer],showSp=!!(sp&&L&&L.visible);if(!showSp&&!F)return;
+  if(st.tile||!st.ghost)return;const F=st.float,sp=cel().sp,L=doc.layers[st.layer],showSp=!!(sp&&L&&L.visible);if(!showSp&&!F)return;
   vctx.save();vctx.beginPath();vctx.rect(0,0,VW,VH);vctx.rect(x0,y0,dw,dh);vctx.clip('evenodd');
   vctx.globalAlpha=.5;vctx.imageSmoothingEnabled=false;
   if(showSp)drawCanvasAt(spCanvas(sp),sp.x,sp.y,sp.w,sp.h,x0,y0,z);
@@ -932,6 +935,52 @@ $('#sc11').onclick=()=>{if(!inHand())return;const F=st.float;if(F&&F.src){scaleF
 $('#scMinus').onclick=()=>{if(inHand())scaleBy(.8)};$('#scPlus').onclick=()=>{if(inHand()){scaleBy(1.25);showFloat()}};
 $('#scSize').onclick=()=>{if(!inHand())return;const F=st.float;if(!F||!F.src)return;const a=F.src.w/F.src.h;
   askText('Ширина в пикселях (высота подстроится)',String(F.w),v=>{const w=Math.round(+String(v).replace(',','.'));if(!(w>=1)){toast('Нужно число, например 64');return}scaleFloatTo(w,Math.max(1,Math.round(w/a)));showFloat()})};
+/* ---------- слой-картинка ----------
+   Вставленная новым слоем картинка помнит оригинал. Пока слой не трогали кистью (сверяем отпечаток пикселей),
+   «Масштаб и положение» собирает её заново из оригинала — без потери качества. Иначе берём то, что нарисовано на слое */
+const imgCache=new Map();
+function celHash(c){let h=fnv32(c);if(c.sp)h=(h^fnv32(c.sp.d)^Math.imul(c.sp.x+7,31)^Math.imul(c.sp.y+11,131)^Math.imul(c.sp.w,8191)^c.sp.h)>>>0;return h>>>0}
+async function imgSave(key,S){imgCache.set(key,S);try{const raw=new Uint8Array(S.d.buffer,S.d.byteOffset,S.d.byteLength),z=await deflateZ(raw);
+  await kvSet('pixelnya:img:'+key,{w:S.w,h:S.h,rs:S.rs,hard:!!S.hard,centers:S.centers||null,z:!!z,d:z||raw.slice()})}catch{}}
+async function imgLoad(key){if(imgCache.has(key))return imgCache.get(key);
+  try{const r=await kvGet('pixelnya:img:'+key);if(!r||!r.d)return null;const u=r.z?await inflateZ(r.d instanceof Uint8Array?r.d:new Uint8Array(r.d)):(r.d instanceof Uint8Array?r.d:new Uint8Array(r.d));
+    const S={d:new Uint8ClampedArray(u.buffer,u.byteOffset,u.byteLength),m:null,w:r.w|0,h:r.h|0,rs:r.rs==='sharp'?'sharp':'soft',hard:!!r.hard,centers:r.centers||null};
+    if(S.d.length!==S.w*S.h*4)return null;imgCache.set(key,S);return S}catch{return null}}
+function readImg(I){if(!I||typeof I!=='object'||typeof I.key!=='string'||I.key.length>40)return{};const w=I.w|0,h=I.h|0;if(w<1||h<1||w>4096||h>4096)return{};
+  return{img:{key:I.key,f:Math.max(0,I.f|0),x:I.x|0,y:I.y|0,w,h,hash:(+I.hash>>>0)}}}
+function preloadImg(){const L=doc.layers[st.layer];if(L&&L.img&&!imgCache.has(L.img.key))imgLoad(L.img.key)}
+/* поднять весь слой «в руку»: картинку — из оригинала, если слой с тех пор не правили, иначе — всё нарисованное */
+function liftLayer(){
+  if(st.float)return true;const L=doc.layers[st.layer];if(!L||!L.visible)return false;
+  const c=cel(),same=!!(L.img&&L.img.f===st.frame&&celHash(c)===L.img.hash),S=same?imgCache.get(L.img.key):null;
+  if(S){const I=L.img,before=c.slice(),sb=c.sp||null;c.fill(0);c.sp=null;
+    st.float={l:st.layer,f:st.frame,before,sb,x:I.x,y:I.y,w:1,h:1,data:new Uint8ClampedArray(4),mask:new Uint8Array(1),src:S,link:I.key};
+    scaleFloatTo(I.w,I.h,false,{x:I.x,y:I.y});st.sel=null;selChanged();return true}
+  if(L.img&&!same)delete L.img;
+  const m=new Uint8Array(doc.w*doc.h);let any=false;for(let p=0;p<m.length;p++)if(c[p*4+3]){m[p]=1;any=true}
+  if(!any){if(!c.sp)return false;m.fill(1)}
+  st.sel=m;if(liftSelection())return true;st.sel=null;selChanged();return false}
+async function transformLayer(){
+  if(st.float){toast('Уже в руке: двигай, тяни за уголки или щипком двумя пальцами');return}
+  if(stopIfHidden())return;const L=doc.layers[st.layer];if(L.img&&!imgCache.has(L.img.key))await imgLoad(L.img.key);
+  if(st.sel){st.sel=null;selChanged()}
+  if(!liftLayer()){toast('На этом слое пока нечего двигать');return}
+  if(!KEEP_FLOAT.includes(st.tool)||st.tool==='picker')setTool('move');renderOptions();showFloat();
+  toast('Слой в руке: двигай, тяни за уголки или щипком двумя пальцами. Потом «Готово»')}
+/* жесты: два пальца по тому, что «в руке», — щипок меняет размер, сдвиг двигает */
+let fgest=null;
+function floatHit(p,mg){const F=st.float;if(!F)return false;const z=st.zoom,X0=st.panX+F.x*z-mg,Y0=st.panY+F.y*z-mg,X1=st.panX+(F.x+F.w)*z+mg,Y1=st.panY+(F.y+F.h)*z+mg;return p.x>=X0&&p.x<=X1&&p.y>=Y0&&p.y<=Y1}
+function contentHit(p){const[x,y]=toDoc(p);if(x<0||y<0||x>=doc.w||y>=doc.h)return false;const L=doc.layers[st.layer];return!!(L&&L.visible&&cel()[(y*doc.w+x)*4+3])}
+function startFgest(a,b){const F=st.float,m={x:(a.x+b.x)/2,y:(a.y+b.y)/2};fgest={d0:Math.hypot(a.x-b.x,a.y-b.y)||1,ux:(m.x-st.panX)/st.zoom,uy:(m.y-st.panY)/st.zoom,w0:F.w,h0:F.h,x0:F.x,y0:F.y,raf:0,pend:null,scaled:false};requestRender()}
+function moveFgest(a,b){const F=st.float,g=fgest;if(!F||!F.src||!g)return;const S=F.src,m={x:(a.x+b.x)/2,y:(a.y+b.y)/2},k=(Math.hypot(a.x-b.x,a.y-b.y)||1)/g.d0;
+  let nw=Math.max(1,Math.round(g.w0*k)),nh=Math.max(1,Math.round(nw*S.h/S.w));if(Math.abs(k-1)<.04){nw=g.w0;nh=g.h0}
+  const rx=(g.ux-g.x0)/g.w0,ry=(g.uy-g.y0)/g.h0,ux=(m.x-st.panX)/st.zoom,uy=(m.y-st.panY)/st.zoom;
+  g.pend={nw,nh,x:Math.round(ux-rx*nw),y:Math.round(uy-ry*nh)};
+  if(!g.raf)g.raf=requestAnimationFrame(()=>{g.raf=0;const q=g.pend,F2=st.float;if(!q||!F2)return;
+    if(q.nw===F2.w&&q.nh===F2.h){F2.x=q.x;F2.y=q.y;requestRender()}else{g.scaled=true;scaleFloatTo(q.nw,q.nh,true,{x:q.x,y:q.y})}})}
+function endFgest(){const g=fgest;fgest=null;if(!g)return;if(g.raf)cancelAnimationFrame(g.raf);const F=st.float,q=g.pend;if(!F)return;
+  if(q&&(q.nw!==F.w||q.nh!==F.h||g.scaled))scaleFloatTo(q.nw,q.nh,false,{x:q.x,y:q.y});else if(q){F.x=q.x;F.y=q.y}
+  syncSelBar();renderOptions();requestRender()}
 function syncSelBar(){const b=$('#selBar');if(!b)return;const on=!!(st.sel||st.float);if(b.hidden===on)b.hidden=!on;const d=$('#selDone');if(d&&d.hidden===!!st.float)d.hidden=!st.float;
   const sc=$('#selScale'),F=st.float,sh=!!((F&&F.src)||(!F&&st.sel));if(sc&&sc.hidden===sh)sc.hidden=!sh;
   if(sh){let t;if(F)t=F.w+'×'+F.h;else{if(selSizeVer!==selVer){selSizeVer=selVer;const r=selBounds(st.sel,doc.w,doc.h);selSizeTxt=r?r.w+'×'+r.h:''}t=selSizeTxt}const e=$('#scSize');if(e.textContent!==t)e.textContent=t}}
@@ -976,6 +1025,7 @@ function commitFloat(){
   const spc=!spEq(d.sp,F.sb);
   if(F.before.length===d.length&&(!sameArr(d,F.before)||spc))pushUndo({type:'cel',l:F.l,f:F.f,before:F.before,after:d.slice(),sb:F.sb||null,sa:d.sp||null});
   noteSpill(F.sb,d.sp);if(r.lost)toast(LOSTMSG);
+  if(F.link&&doc.layers[F.l]){const L=doc.layers[F.l],fresh=!L.img||L.img.key!==F.link;L.img={key:F.link,f:F.f,x:F.x,y:F.y,w:F.w,h:F.h,hash:celHash(d)};if(fresh||F.srcDirty)imgSave(F.link,F.src);renderLayers()}
   selChanged();drawThumb(F.f);scheduleAutosave();
 }
 function insideSel(x,y){const F=st.float;if(F){const lx=x-F.x,ly=y-F.y;return lx>=0&&ly>=0&&lx<F.w&&ly<F.h&&F.mask[ly*F.w+lx]===1}return!!(st.sel&&x>=0&&y>=0&&x<doc.w&&y<doc.h&&st.sel[y*doc.w+x])}
@@ -985,7 +1035,7 @@ function transformFloat(fn){if(!ensureFloat())return;const F=st.float,nd=new Uin
   F.w=nw;F.h=nh;F.data=nd;F.mask=nm;
   if(F.src){const S=F.src,sw=fn.swap?S.h:S.w,sh=fn.swap?S.w:S.h,sd=new Uint8ClampedArray(S.d.length),sm=S.m?new Uint8Array(S.m.length):null;
     for(let y=0;y<S.h;y++)for(let x=0;x<S.w;x++){const a=y*S.w+x,[tx,ty]=fn(x,y,S.w,S.h),b=ty*sw+tx;if(sm)sm[b]=S.m[a];sd.set(S.d.subarray(a*4,a*4+4),b*4)}
-    F.src={...S,d:sd,m:sm,w:sw,h:sh}}
+    F.src={...S,d:sd,m:sm,w:sw,h:sh};F.srcDirty=true}
   if(F.whole){ /* весь слой: отражаем и поворачиваем вокруг центра холста, вместе с тем, что за краем */
     if(fn.kind==='h')F.x=doc.w-ox-ow;else if(fn.kind==='v')F.y=doc.h-oy-oh;
     else if(fn.swap){F.x=Math.floor((doc.w+doc.h-2)/2)-oy-oh+1;F.y=Math.floor((doc.h-doc.w)/2)+ox}
@@ -1019,7 +1069,8 @@ const ACT={
   flipH(){transformFloat(flipHf)},
   flipV(){transformFloat(flipVf)},
   rot(){transformFloat(rotCW)},
-  commit(){commitFloat()}
+  commit(){commitFloat()},
+  xform(){transformLayer()}
 };
 function stopIfHidden(){if(!doc.layers[st.layer].visible){toast('Слой скрыт. Включи его, чтобы рисовать');return true}return false}
 
@@ -1158,7 +1209,8 @@ function renderOptions(){
   if(t==='fill')h+=chip('contig','Только смежные')+dith;
   if(t==='picker')h+=`<p class="hint">Берёт цвет с холста. Ещё можно просто удержать палец на холсте с любым инструментом.</p>`;
   if(SELT.includes(t)){h+=seg('selMode','',[['new','Новое'],['add','Добавить'],['sub','Вычесть']]);if(t==='wand')h+=chip('contig','Только смежные');if(t==='lasso')h+=chip('smart','Точно по объекту')+(st.smart?'<p class="hint">Обведи объект с запасом: фон вокруг не выделится.</p>':'')}
-  if(t==='move'&&!st.float&&!st.sel)h+=`<p class="hint">Двигает весь слой. Что уехало за край холста, не пропадает: оно вернётся, если сдвинуть слой назад. Если есть выделение — двигает только его.</p>`;
+  if(t==='move'&&!st.float)h+=act('xform','Масштаб и положение слоя');
+  if(t==='move'&&!st.float&&!st.sel)h+=`<p class="hint">Щипок двумя пальцами по рисунку тоже берёт слой «в руку»: им же меняй размер. `+`</p><p class="hint">Двигает весь слой. Что уехало за край холста, не пропадает: оно вернётся, если сдвинуть слой назад. Если есть выделение — двигает только его.</p>`;
   if(t==='text'&&!st.float)h+=`<p class="hint">Нажми на холст там, где должен начаться текст.</p>`;
   if(SELT.includes(t)||t==='move'||t==='text'){
     const has=!!(st.sel||st.float);
@@ -1282,6 +1334,7 @@ $('#blend').innerHTML=BLENDS.map(([v,l])=>`<option value="${v}">${l}</option>`).
 /* значок «часть слоя за краем холста» в строке слоя */
 function updateSpillMarks(){let any=false;document.querySelectorAll('#layers .layer').forEach(r=>{const c=doc.cels[+r.dataset.l],has=!!(c&&c[st.frame]&&c[st.frame].sp),k=r.querySelector('.spk');if(k&&k.hidden===has)k.hidden=!has;if(has)any=true});const h=$('#spHint');if(h&&h.hidden===any)h.hidden=!any}
 function renderLayers(){
+  preloadImg();
   const box=$('#layers');box.innerHTML='';
   for(let l=doc.layers.length-1;l>=0;l--){const L=doc.layers[l];
     const row=document.createElement('div');row.className='layer'+(l===st.layer?' on':'');
@@ -1292,7 +1345,7 @@ function renderLayers(){
     const name=document.createElement('button');name.className='lname';name.textContent=L.name;
     name.onclick=()=>{if(st.layer===l){askText('Имя слоя',L.name,v=>{L.name=v.trim()||L.name;renderLayers();scheduleAutosave()})}else{commitFloat();st.layer=l;renderLayers()}};
     row.dataset.l=l;const cl=doc.cels[l][st.frame],spk=document.createElement('span');spk.className='spk';spk.innerHTML=icon('out');spk.title='Часть слоя лежит за краем холста. Она сохранена: сдвинь слой назад, и она вернётся';spk.hidden=!(cl&&cl.sp);
-    row.append(eye,lock,name,spk);if(L.motion){const mv=document.createElement('span');mv.className='mvk';mv.innerHTML=icon('drift');mv.title='Слой движется сам (Движение…)';row.append(mv)}box.append(row)}
+    row.append(eye,lock,name,spk);if(L.img){const pi=document.createElement('span');pi.className='mvk';pi.innerHTML=icon('pic');pi.title='Слой-картинка: размер и положение можно менять без потери качества';row.append(pi)}if(L.motion){const mv=document.createElement('span');mv.className='mvk';mv.innerHTML=icon('drift');mv.title='Слой движется сам (Движение…)';row.append(mv)}box.append(row)}
   updateSpillMarks();
   const L=doc.layers[st.layer];$('#opacity').value=Math.round(L.opacity*100);$('#opVal').textContent=Math.round(L.opacity*100)+'%';$('#blend').value=L.blend||'source-over';
 }
@@ -1409,11 +1462,17 @@ stage.addEventListener('pointerdown',e=>{
     if(ts.length===1)tap={t0:performance.now(),max:1,moved:false};else if(tap)tap.max=Math.max(tap.max,ts.length);
     if(ts.length>=2){
       cancelHold();if(stroke&&stroke.ptype==='touch')cancelStroke();
+      {const[a,b]=ts,mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+        /* что «в руке» — щипок по нему меняет размер и положение; с «Перемещением» щипок по нарисованному поднимает слой */
+        if(!st.playing&&(st.float?(floatHit(mid,30)||floatHit(a,30)||floatHit(b,30)):(st.tool==='move'&&(contentHit(a)||contentHit(b)||contentHit(mid))&&liftLayer()))&&st.float&&st.float.src){
+          if(st.tool!=='move'&&!KEEP_FLOAT.includes(st.tool))setTool('move');panning=null;touchLock=true;startFgest(a,b);return}}
       panning=null;touchLock=true;const[a,b]=ts;
       gesture={d0:Math.hypot(a.x-b.x,a.y-b.y)||1,m0:{x:(a.x+b.x)/2,y:(a.y+b.y)/2},z0:st.zoom,px0:st.panX,py0:st.panY,last:null};return;
     }
     if(touchLock||stroke)return;
     {const h=handleAt(p);if(h){startScale(h,e.pointerId,'touch');return}}
+    /* палец по тому, что «в руке», тащит его, даже если палец обычно двигает холст */
+    if(st.float&&!st.playing&&floatHit(p,0)){const F=st.float;stroke={tool:'floatmove',pointerId:e.pointerId,ptype:'touch',start:toDoc(p),fx:F.x,fy:F.y,moved:false};return}
     if(touchPans()){panning={id:e.pointerId,x:p.x,y:p.y};armHold(e.pointerId,p);return}
     beginStroke(...toDoc(p),e.pointerId,'touch',{});armHold(e.pointerId,p);return;
   }
@@ -1430,6 +1489,7 @@ stage.addEventListener('pointermove',e=>{
   if(stroke&&stroke.loupe&&stroke.pointerId===e.pointerId){pickScreen(p.x,p.y);return}
   if(stroke&&stroke.tool==='floatscale'&&stroke.pointerId===e.pointerId){scaleDrag(stroke,(p.x-st.panX)/st.zoom,(p.y-st.panY)/st.zoom);return}
   if(rec.type==='touch'&&tap&&Math.hypot(p.x-rec.sx,p.y-rec.sy)>10)tap.moved=true;
+  if(fgest){const ts=touchList();if(ts.length>=2)moveFgest(ts[0],ts[1]);return}
   if(gesture){const ts=touchList();if(ts.length>=2){const[a,b]=ts,d=Math.hypot(a.x-b.x,a.y-b.y)||1,m={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
       const z=clamp(gesture.z0*d/gesture.d0,.25,128);st.zoom=z;st.panX=m.x-(gesture.m0.x-gesture.px0)/gesture.z0*z;st.panY=m.y-(gesture.m0.y-gesture.py0)/gesture.z0*z;gesture.last=m;updateZoomLabel();requestRender()}return}
   if(panning&&panning.id===e.pointerId){st.panX+=p.x-panning.x;st.panY+=p.y-panning.y;panning.x=p.x;panning.y=p.y;requestRender();return}
@@ -1441,6 +1501,7 @@ function onUp(e,cancel){
   if(stroke&&stroke.pointerId===e.pointerId)cancel?cancelStroke():endStroke();
   if(panning&&panning.id===e.pointerId){panning=null;st.panX=Math.round(st.panX);st.panY=Math.round(st.panY)}
   if(rec.type==='touch'){const ts=touchList();
+    if(fgest&&ts.length<2)endFgest();
     if(gesture&&ts.length<2){const m=gesture.last||gesture.m0;gesture=null;snapZoom(m.x,m.y)}
     if(ts.length===0){touchLock=false;if(tap&&!tap.moved&&tap.max>=2&&performance.now()-tap.t0<400){if(tap.max===2)undo();else if(tap.max===3)redo();else if(st.mode!=='normal')setMode('normal');else setFocus(!st.focus)}tap=null}}
 }
@@ -1515,6 +1576,8 @@ $('#cbUndo').onclick=undo;$('#cbRedo').onclick=redo;
 /* Отражение вида: зеркалится только картинка на экране, сам рисунок не меняется. Рисовать в отражённом виде можно как обычно */
 function setFlip(on){st.flip=!!on;view.classList.toggle('flipped',st.flip);$('#flipBtn').setAttribute('aria-pressed',st.flip);$('#flipBadge').hidden=!st.flip;requestRender()}
 $('#flipBtn').onclick=()=>setFlip(!st.flip);
+function setGhost(on,quiet){st.ghost=!!on;$('#ghostBtn').setAttribute('aria-pressed',st.ghost);saveUI();requestRender();if(!quiet)toast(st.ghost?'То, что за краем холста, снова видно бледным':'То, что за краем холста, спрятано. Оно не пропало: вернуть — та же кнопка внизу или меню «Вид»')}
+$('#ghostBtn').onclick=()=>setGhost(!st.ghost);
 $('#checkBtn').onclick=()=>setCheck(!CK.on);
 $('#flipBadge').addEventListener('pointerdown',e=>e.stopPropagation());$('#flipBadge').onclick=()=>setFlip(false);
 $('#zoomIn').onclick=()=>zoomStep(1);$('#zoomOut').onclick=()=>zoomStep(-1);$('#zoomLbl').onclick=fitView;
@@ -1704,10 +1767,10 @@ function placeImage(R,o,name){
   if(o.dest==='new'){const nm=(String(name||'').replace(/\.[^.]+$/,'').trim()||'Картинка').slice(0,40);
     docOp(()=>{const i=st.layer+1;doc.layers.splice(i,0,{...newLayer(nm),opacity:o.trace?.4:1});doc.cels.splice(i,0,doc.frames.map(blankCel));st.layer=i})}
   else{commitFloat();if(stopIfHidden())return}
-  newFloat({x:Math.round((doc.w-R.w)/2),y:Math.round((doc.h-R.h)/2),w:R.w,h:R.h,data:R.data,mask,src:R.src});showFloat();
+  newFloat({x:Math.round((doc.w-R.w)/2),y:Math.round((doc.h-R.h)/2),w:R.w,h:R.h,data:R.data,mask,src:R.src,link:o.dest==='new'?uid():undefined});showFloat();
   if(!KEEP_FLOAT.includes(st.tool)||st.tool==='picker')setTool('move');
   renderOptions();requestRender();
-  toast('Картинка в руке: двигай её, тяни за уголки, чтобы изменить размер, или нажми «По холсту» сверху. Потом «Готово»')}
+  toast('Картинка в руке: двигай пальцем, щипком двумя пальцами меняй размер, или тяни за уголки и «По холсту» сверху. Потом «Готово»')}
 function insertDialog(blob,name){
   if(st.playing)stopPlay();commitFloat();
   const o={...st.ins,size:'fit',rs:'soft',w:0};let S=null,busy=false,R=null;
@@ -1775,7 +1838,8 @@ $('#editBtn').onclick=()=>{
   <h3>Выделение</h3>${b('selall','Выделить всё')}${b('deselect','Снять выделение',!has)}${b('invert','Инвертировать')}
   <h3>Отразить и повернуть (выделенное или весь слой)</h3>${b('flipH','Отразить по горизонтали')}${b('flipV','Отразить по вертикали')}${b('rot','Повернуть на 90°')}
   <h3>Цвет</h3>${b('replace','Заменить цвет…')}${b('outline','Обводка контуром…')}${b('adjust','Коррекция цвета…')}
-  <h3>Анимация</h3>${b('motion','Движение слоёв…')}</div>
+  <h3>Анимация</h3>${b('motion','Движение слоёв…')}
+  <h3>Слой целиком</h3>${b('xform','Масштаб и положение слоя')}</div>
   <div class="actions"><button class="btn" data-close>Закрыть</button></div>`);
   $('#sheet').querySelectorAll('[data-e]').forEach(x=>x.onclick=()=>{const a=x.dataset.e;closeModal();
     if(a==='replace')replaceDialog();else if(a==='outline')outlineDialog();else if(a==='adjust')adjustDialog();else if(a==='motion')motionDialog();else if(a==='image')insertDialog();else ACT[a]()});
@@ -1798,6 +1862,7 @@ function viewMenu(){
   <button class="btn" data-v="fit">Вписать холст в экран</button>
   <h3>Экран</h3>
   <button class="btn" data-v="flip" aria-pressed="${st.flip}">Отразить вид (только на экране) · F</button>
+  <button class="btn" data-v="ghost" aria-pressed="${st.ghost}">Показывать то, что за краем холста</button>
   <button class="btn" data-v="daily" aria-pressed="${st.daily.on}">Тема дня и серия дней в Галерее</button>
   <button class="btn" data-v="check" aria-pressed="${CK.on}">Пиксель-чек: сироты, углы, ступеньки, похожие цвета</button>
   <button class="btn" data-v="clean" aria-pressed="${st.mode==='clean'}">Только рисунок</button>
@@ -1807,6 +1872,7 @@ function viewMenu(){
   const sh=$('#sheet');
   sh.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{const v=b.dataset.v;
     if(v==='flip'){setFlip(!st.flip);viewMenu();return}
+    if(v==='ghost'){setGhost(!st.ghost,true);viewMenu();return}
     if(v==='check'){closeModal();setCheck(!CK.on);return}
     if(v==='daily'){st.daily.on=!st.daily.on;saveUI();viewMenu();return}
     if(v==='clean'||v==='mini'){closeModal();setMode(st.mode===v?'normal':v);return}
@@ -1949,7 +2015,7 @@ function applyDocData(d){
   if(!d.layers.length||!d.frames.length||d.cels.length!==d.layers.length||d.cels.some(r=>r.length!==d.frames.length||r.some(a=>a.length!==n)))throw new Error('bad');
   const nf=d.frames.length,blends=BLENDS.map(b=>b[0]);
   const nd={w,h,cels:d.cels,
-    layers:d.layers.map(L=>({name:String(L.name||'Слой'),visible:L.visible!==false,opacity:clamp(+L.opacity>=0?+L.opacity:1,0,1),blend:blends.includes(L.blend)?L.blend:'source-over',lockAlpha:!!L.lockAlpha,...readMotion(L.motion)})),
+    layers:d.layers.map(L=>({name:String(L.name||'Слой'),visible:L.visible!==false,opacity:clamp(+L.opacity>=0?+L.opacity:1,0,1),blend:blends.includes(L.blend)?L.blend:'source-over',lockAlpha:!!L.lockAlpha,...readMotion(L.motion),...readImg(L.img)})),
     frames:d.frames.map(F=>({dur:clamp((F.dur|0)||100,10,5000)})),
     tags:(Array.isArray(d.tags)?d.tags:[]).map(t=>({name:String(t.name||'Анимация'),from:clamp(t.from|0,0,nf-1),to:clamp(t.to|0,0,nf-1),dir:['forward','reverse','pingpong'].includes(t.dir)?t.dir:'forward',color:/^#[0-9a-f]{6}$/i.test(t.color)?t.color:TAGC[0]})).filter(t=>t.to>=t.from),
     mo:{wrap:!(d.mo&&d.mo.wrap===false),len:clamp((d.mo&&d.mo.len)|0,0,MO_MAX)}};
@@ -2343,14 +2409,14 @@ function showHelp(){showModal(`<h2>Жесты и клавиши</h2><dl class="k
   <dt>Один палец</dt><dd>Рисует, пока не коснёшься Pencil. После этого палец двигает холст, а рисует только стилус. Поменять можно в меню «Вид»</dd>
   <dt>Выделение</dt><dd>Потяни внутри выделения, чтобы сдвинуть его. Тап по выделению снимает его. Над холстом появляются кнопки «Снять выделение» и «Готово» (оно впечатывает сдвинутое)</dd>
   <dt>Лассо</dt><dd>Обведи объект с запасом: с включённым «Точно по объекту» выделится только он, без фона вокруг</dd>
-  <dt>Край холста</dt><dd>Слой можно двигать за край холста. Что вышло за край, не пропадает: видно бледным силуэтом, и оно вернётся, если сдвинуть слой назад</dd>
+  <dt>Край холста</dt><dd>Слой можно двигать за край холста. Что вышло за край, не пропадает: видно бледным силуэтом, и оно вернётся, если сдвинуть слой назад. Спрятать силуэт: кнопка с рамкой внизу справа или меню «Вид»</dd>
   <dt>Угол холста</dt><dd>Две кнопки слева внизу: «Только рисунок» прячет всё, «Только главное» оставляет инструменты и палитру. Нажми ещё раз — вернётся всё</dd>
   <dt>Отразить вид</dt><dd>Клавиша F или кнопка внизу. Рисунок на экране зеркалится, чтобы взглянуть свежим глазом. Сам рисунок не меняется, рисовать можно как обычно</dd>
   <dt>Тени и света</dt><dd>Полоска в окне «Выбор цвета»: оттенки от текущего цвета, тени холоднее, света теплее. «+» добавляет их в палитру</dd>
   <dt>Пиксель-чек</dt><dd>Кнопка с лупой внизу: подсвечивает одиночные пиксели, лишние углы, неровные ступеньки, похожие цвета; есть просмотр в Ч/Б и силуэтом</dd>
   <dt>Движение</dt><dd>Кнопка «Движение…» внизу: слой сам едет кадр за кадром, например облака. Видно при проигрывании и в GIF</dd>
   <dt>Таймлапс</dt><dd>Файл → «Таймлапс этой работы»: ролик о том, как рисовалась работа, в GIF или видео</dd>
-  <dt>Картинка на холст</dt><dd>Правка → «Вставить картинку»: из «Фото», файла или буфера. Новым слоем или на текущий, по размеру холста или как есть, можно сразу сделать пиксельной. Пока картинка «в руке», её размер меняется уголками или кнопками сверху: «По холсту», «1:1», «−», «+»; это работает и для любого выделения. ⌘V с клавиатурой тоже вставляет скопированную картинку</dd>
+  <dt>Картинка на холст</dt><dd>Правка → «Вставить картинку»: из «Фото», файла или буфера. Новым слоем или на текущий, по размеру холста или как есть, можно сразу сделать пиксельной. Пока картинка «в руке», её двигают пальцем, размер меняют щипком двумя пальцами, уголками или кнопками сверху: «По холсту», «1:1», «−», «+»; это работает и для любого выделения. Позже: «Перемещение» → «Масштаб и положение слоя» или щипок по рисунку. Пока слой-картинку не правили, качество не теряется. ⌘V с клавиатурой тоже вставляет скопированную картинку</dd>
   <dt>Референс</dt><dd>Тяни за верхнюю полоску, размер меняй уголком. Внутри картинку двигают одним пальцем и масштабируют двумя. Удержание на ней берёт цвет</dd>
   <dt>B E G I L U O</dt><dd>Карандаш, ластик, заливка, пипетка, линия, прямоугольник, эллипс</dd>
   <dt>M Q W V T</dt><dd>Выделение, лассо, волшебная палочка, перемещение, текст</dd>
@@ -2544,7 +2610,7 @@ function exportDialog(preset){
 $('#exportBtn').onclick=()=>exportDialog();
 
 /* ---------- storage: IndexedDB, falls back to Claude storage ---------- */
-const VERSION='3.5';
+const VERSION='3.6.1';
 const IDB=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{try{const r=indexedDB.open('pixelnya',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}}));
   const run=async(mode,fn)=>{const db=await open();return new Promise((res,rej)=>{const t=db.transaction('kv',mode),q=fn(t.objectStore('kv'));t.oncomplete=()=>res(q.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})};
   return{get:k=>run('readonly',s=>s.get(k)),set:(k,v)=>run('readwrite',s=>s.put(v,k)),del:k=>run('readwrite',s=>s.delete(k))}})();
@@ -2584,7 +2650,7 @@ async function saveNow(force){
 function showSaved(ok){const e=$('#stSave');if(!e)return;e.classList.toggle('bad',!ok);e.textContent=ok?'Сохранено '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'Не сохранено!'}
 const flushSave=()=>{clearTimeout(saveTimer);return saveNow()};
 function scheduleAutosave(){dirty=true;clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,1200)}
-function saveUI(){if(booted)kvSet('pixelnya:ui',JSON.stringify({grid:st.grid,gridN:st.gridN,gridZ:st.gridZ,bg:st.bg,tile:st.tile,prevScale:prev.scale,shape:st.shape,smart:st.smart,ins:st.ins,mode:st.mode,ramp:st.ramp,tlOn:st.tlOn,daily:st.daily,touch:st.touch,penSeen,ex:{fmt:st.ex.fmt,scale:st.ex.scale,layout:st.ex.layout},wins:WS}))}
+function saveUI(){if(booted)kvSet('pixelnya:ui',JSON.stringify({grid:st.grid,gridN:st.gridN,gridZ:st.gridZ,bg:st.bg,tile:st.tile,prevScale:prev.scale,shape:st.shape,smart:st.smart,ins:st.ins,ghost:st.ghost,mode:st.mode,ramp:st.ramp,tlOn:st.tlOn,daily:st.daily,touch:st.touch,penSeen,ex:{fmt:st.ex.fmt,scale:st.ex.scale,layout:st.ex.layout},wins:WS}))}
 function updateTitle(){const b=$('#nameBtn');if(b)b.textContent=cur?cur.name:'Пиксельня'}
 function resetHistory(){undoStack.length=0;redoStack.length=0;updateUndoUI()}
 function enterWork(item,d){
@@ -2939,7 +3005,7 @@ function setPrevBtn(){const b=winEl('winPrev').querySelector('[data-a="play"]');
 setPrevBtn();
 new ResizeObserver(()=>{refs.forEach(placeRef);for(const[id]of WINS)if(WS[id])placeWin(id)}).observe(stage);
 
-function readUI(ui){st.grid=ui.grid!==false;st.gridN=ui.gridN|0;st.gridZ=[12,16,20,24,32].includes(ui.gridZ)?ui.gridZ:20;st.bg=BGS.some(b=>b[0]===ui.bg)?ui.bg:'chk';st.tile=!!ui.tile;st.shape=ui.shape==='round'?'round':'sq';st.smart=ui.smart!==false;if(ui.ramp&&[3,5,7,9].includes(ui.ramp.n))st.ramp={n:ui.ramp.n,shift:clamp(+ui.ramp.shift||0,0,1)};st.touch=['auto','draw','pan'].includes(ui.touch)?ui.touch:'auto';penSeen=!!ui.penSeen;if(ui.ex&&typeof ui.ex==='object'){const e=ui.ex;if(EX_FMTS.includes(e.fmt))st.ex.fmt=e.fmt;if(EX_SCALES.includes(e.scale))st.ex.scale=e.scale;if(['row','grid','tags'].includes(e.layout))st.ex.layout=e.layout}prev.scale=[1,2,4].includes(ui.prevScale)?ui.prevScale:2;winEl('winPrev').querySelector('[data-a="sc"]').textContent='×'+prev.scale;st.tlOn=ui.tlOn!==false;if(ui.ins&&typeof ui.ins==='object'){const q=ui.ins;st.ins={dest:q.dest==='cur'?'cur':'new',cols:['keep','pal','auto'].includes(q.cols)?q.cols:'keep',n:[4,8,16,32,64].includes(q.n)?q.n:16,hard:q.hard!==false,trace:!!q.trace}}if(ui.daily&&typeof ui.daily==='object')st.daily={on:ui.daily.on!==false,day:ui.daily.day|0,shift:ui.daily.shift|0}}
+function readUI(ui){st.grid=ui.grid!==false;st.gridN=ui.gridN|0;st.gridZ=[12,16,20,24,32].includes(ui.gridZ)?ui.gridZ:20;st.bg=BGS.some(b=>b[0]===ui.bg)?ui.bg:'chk';st.tile=!!ui.tile;st.shape=ui.shape==='round'?'round':'sq';st.smart=ui.smart!==false;if(ui.ramp&&[3,5,7,9].includes(ui.ramp.n))st.ramp={n:ui.ramp.n,shift:clamp(+ui.ramp.shift||0,0,1)};st.touch=['auto','draw','pan'].includes(ui.touch)?ui.touch:'auto';penSeen=!!ui.penSeen;if(ui.ex&&typeof ui.ex==='object'){const e=ui.ex;if(EX_FMTS.includes(e.fmt))st.ex.fmt=e.fmt;if(EX_SCALES.includes(e.scale))st.ex.scale=e.scale;if(['row','grid','tags'].includes(e.layout))st.ex.layout=e.layout}prev.scale=[1,2,4].includes(ui.prevScale)?ui.prevScale:2;winEl('winPrev').querySelector('[data-a="sc"]').textContent='×'+prev.scale;st.tlOn=ui.tlOn!==false;st.ghost=ui.ghost!==false;if(ui.ins&&typeof ui.ins==='object'){const q=ui.ins;st.ins={dest:q.dest==='cur'?'cur':'new',cols:['keep','pal','auto'].includes(q.cols)?q.cols:'keep',n:[4,8,16,32,64].includes(q.n)?q.n:16,hard:q.hard!==false,trace:!!q.trace}}if(ui.daily&&typeof ui.daily==='object')st.daily={on:ui.daily.on!==false,day:ui.daily.day|0,shift:ui.daily.shift|0}}
 /* ---------- start ---------- */
 sizeAux();renderPalette();renderRecent();setTool('pencil');updatePlayUI();
 (async()=>{
@@ -2952,7 +3018,7 @@ sizeAux();renderPalette();renderRecent();setTool('pencil');updatePlayUI();
   if(!loaded)for(const it of [...lib.items].sort((a,b)=>b.t-a.t)){if(await tryOpen(it.id)){loaded=true;break}}
   syncViewBtns();
   renderPalette();structureChanged();updateTitle();clearTimeout(saveTimer);dirty=false;booted=true;
-  requestAnimationFrame(()=>{resize();initWins(ui&&ui.wins);setMode(ui&&ui.mode,true);fitView();drawPicker();if(!loaded)sizeDialog('new',true)});
+  requestAnimationFrame(()=>{resize();initWins(ui&&ui.wins);setMode(ui&&ui.mode,true);$('#ghostBtn').setAttribute('aria-pressed',st.ghost);fitView();drawPicker();if(!loaded)sizeDialog('new',true)});
   try{const r=await kvGet('pixelnya:refs');if(r)JSON.parse(r).forEach(o=>addRef(o,true))}catch{}
   try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch{}
   setTimeout(checkNudge,2500);
