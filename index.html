@@ -252,6 +252,7 @@ body.m-mini #winTools,body.m-mini #winPal{display:flex!important}
 .insprev canvas{image-rendering:pixelated;background:var(--checker);display:block;max-width:100%}
 .insprev canvas[hidden]{display:none}
 .insopts{display:flex;flex-direction:column;gap:8px}
+.rbprev canvas{touch-action:none;cursor:crosshair}
 .insopts .seg .lbl{min-width:84px}
 .selscale{display:flex;gap:4px;align-items:center;padding-right:4px;border-right:2px solid var(--soft)}
 .selscale[hidden]{display:none}
@@ -285,7 +286,7 @@ body.m-mini #winTools,body.m-mini #winPal{display:flex!important}
 </header>
 
 <main class="stage" id="stage"><canvas id="view"></canvas>
-  <div class="selbar" id="selBar" role="toolbar" aria-label="Выделение" hidden><button class="btn primary" id="selDone" hidden>Готово</button><span class="selscale" id="selScale" hidden><button class="btn small" id="scFit" title="Вписать в холст">По холсту</button><button class="btn small" id="sc11" title="Исходный размер">1:1</button><button class="btn small icon" id="scMinus" aria-label="Меньше">−</button><button class="btn small" id="scSize" title="Задать размер точно">1×1</button><button class="btn small icon" id="scPlus" aria-label="Больше">+</button></span><button class="btn" id="selOff">Снять выделение</button></div>
+  <div class="selbar" id="selBar" role="toolbar" aria-label="Выделение" hidden><button class="btn primary" id="selDone" hidden>Готово</button><span class="selscale" id="selScale" hidden><button class="btn small" id="scFit" title="Вписать в холст">По холсту</button><button class="btn small" id="sc11" title="Исходный размер">1:1</button><button class="btn small icon" id="scMinus" aria-label="Меньше">−</button><button class="btn small" id="scSize" title="Задать размер точно">1×1</button><button class="btn small icon" id="scPlus" aria-label="Больше">+</button></span><button class="btn" id="selBg">Убрать фон</button><button class="btn" id="selOff">Снять выделение</button></div>
   <div class="cornerbar" id="cornerBar" role="toolbar" aria-label="Режим экрана"><button class="btn small icon" id="cbUndo" data-icon="undo" aria-label="Отменить" hidden></button><button class="btn small icon" id="cbRedo" data-icon="redo" aria-label="Повторить" hidden></button><button class="btn small icon" id="modeClean" data-icon="clean" aria-pressed="false" aria-label="Только рисунок" title="Только рисунок: спрятать всё остальное"></button><button class="btn small icon" id="modeMini" data-icon="mini" aria-pressed="false" aria-label="Только главное" title="Только главное: инструменты и палитра"></button></div>
   <div class="chkbar" id="chkBar" role="toolbar" aria-label="Пиксель-чек" hidden><button class="btn small" data-ck="orphan" aria-pressed="true"><i style="background:#ff2bd6"></i>Сироты <b>0</b></button><button class="btn small" data-ck="corner" aria-pressed="true"><i style="background:#ff8a00"></i>Лишние углы <b>0</b></button><button class="btn small" data-ck="jag" aria-pressed="true"><i style="background:#00c2ff"></i>Ступеньки <b>0</b></button><button class="btn small" id="ckSim">Похожие цвета <b>0</b></button><button class="btn small" data-cv="bw" aria-pressed="false">Ч/Б</button><button class="btn small" data-cv="sil" aria-pressed="false" title="Силуэт текущего слоя">Силуэт</button><button class="btn small icon" id="ckHelp" aria-label="Что это значит">?</button><button class="btn small icon" id="ckClose" aria-label="Закрыть пиксель-чек">✕</button></div>
   <div class="nudge" id="nudge" role="status" hidden><span>Давно не было копии всех работ. Сохранить её сейчас?</span><button class="btn small primary" id="nuYes">Сделать копию</button><button class="btn small" id="nuNo">Позже</button></div>
@@ -862,46 +863,160 @@ function polyMask(pts){
   for(let i=0;i<n;i++){const a=pts[i],b=pts[(i+1)%n];bres(a[0],a[1],b[0],b[1],(x,y)=>{if(x>=0&&y>=0&&x<w&&y<h)m[y*w+x]=1})}
   return m;
 }
-/* «Точно по объекту»: цвета фона берём с кромки вокруг обводки (пиксели снаружи, вплотную к ней) и смываем их изнутри,
-   начиная от обводки. Всё, что не смылось, считается объектом. Если чистого фона вокруг нет или смылось всё, вернём null,
-   и тогда выделение остаётся по линии как есть */
-function smartMask(M,d,w,h){
-  const key=p=>{const i=p*4;return d[i+3]===0?0:((d[i]<<24|d[i+1]<<16|d[i+2]<<8|d[i+3])>>>0)};
-  const cnt=new Map();let ring=0;
-  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const p=y*w+x;if(M[p])continue;
-    if((x>0&&M[p-1])||(x<w-1&&M[p+1])||(y>0&&M[p-w])||(y<h-1&&M[p+w])){const k=key(p);cnt.set(k,(cnt.get(k)||0)+1);ring++}}
-  if(ring<4)return null;
-  const thr=Math.max(2,Math.ceil(ring*.03)),bg=new Set();let cov=0;
-  for(const[k,c]of cnt)if(c>=thr){bg.add(k);cov+=c}
-  if(cov<ring*.6)return null;
-  const gone=new Uint8Array(w*h),stack=[];
-  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const p=y*w+x;if(!M[p])continue;
-    if((x===0||y===0||x===w-1||y===h-1||!M[p-1]||!M[p+1]||!M[p-w]||!M[p+w])&&bg.has(key(p))){gone[p]=1;stack.push(p)}}
-  while(stack.length){const p=stack.pop(),x=p%w;let q;
-    if(x>0){q=p-1;if(M[q]&&!gone[q]&&bg.has(key(q))){gone[q]=1;stack.push(q)}}
-    if(x<w-1){q=p+1;if(M[q]&&!gone[q]&&bg.has(key(q))){gone[q]=1;stack.push(q)}}
-    if(p>=w){q=p-w;if(M[q]&&!gone[q]&&bg.has(key(q))){gone[q]=1;stack.push(q)}}
-    if(p+w<M.length){q=p+w;if(M[q]&&!gone[q]&&bg.has(key(q))){gone[q]=1;stack.push(q)}}}
-  const res=new Uint8Array(w*h);let kept=0;
-  for(let p=0;p<res.length;p++)if(M[p]&&!gone[p]){res[p]=1;kept++}
-  return kept?res:null;
-}
+/* ---------- отделить объект от фона ----------
+   Как GrabCut: у фона и у объекта своя смесь цветов (по 5 «пятен» в OKLab). Каждый пиксель тянется к той смеси,
+   на которую похож, а соседи похожего цвета держатся вместе — поэтому граница ложится туда, где цвет резко меняется
+   (минимальный разрез графа, Бойков—Колмогоров). Несколько проходов: смеси уточняются по тому, что получилось */
+function maxflowGrid(w,h,tr,cr,cd){
+  const n=w*h,rc=new Float64Array(n*4),TERM=-2,ORPH=-3,NONE=-1,INF=1e9;
+  for(let p=0;p<n;p++){if(p%w<w-1){rc[p*4]=cr[p];rc[(p+1)*4+1]=cr[p]}if(p+w<n){rc[p*4+2]=cd[p];rc[(p+w)*4+3]=cd[p]}}
+  const par=new Int32Array(n).fill(NONE),sink=new Uint8Array(n),ts=new Int32Array(n),dist=new Int32Array(n),inQ=new Uint8Array(n),Q=new Int32Array(n),orph=[];
+  let qh=0,qn=0,T=0,cur=-1,oh=0;
+  const nb=(p,dd)=>dd===0?p+1:dd===1?p-1:dd===2?p+w:p-w,ok=(p,dd)=>dd===0?p%w<w-1:dd===1?p%w>0:dd===2?p+w<n:p>=w;
+  const hd=a=>nb(a>>2,a&3),sis=a=>(nb(a>>2,a&3)<<2)|((a&3)^1);
+  const act=i=>{if(!inQ[i]){inQ[i]=1;Q[(qh+qn)%n]=i;qn++}},orf=i=>{par[i]=ORPH;orph.push(i)};
+  for(let i=0;i<n;i++)if(tr[i]!==0){par[i]=TERM;sink[i]=tr[i]<0?1:0;dist[i]=1;act(i)}
+  for(;;){
+    let i=-1;
+    if(cur>=0){i=cur;inQ[i]=0;cur=-1;if(par[i]===NONE)i=-1}
+    if(i<0){while(qn){const k=Q[qh];qh=(qh+1)%n;qn--;inQ[k]=0;if(par[k]!==NONE){i=k;break}}if(i<0)break}
+    let mid=-1;
+    if(!sink[i]){for(let dd=0;dd<4;dd++){if(!ok(i,dd))continue;const a=(i<<2)|dd;if(rc[a]<=0)continue;const j=nb(i,dd);
+        if(par[j]===NONE){sink[j]=0;par[j]=(j<<2)|(dd^1);ts[j]=ts[i];dist[j]=dist[i]+1;act(j)}
+        else if(sink[j]){mid=a;break}
+        else if(ts[j]<=ts[i]&&dist[j]>dist[i]){par[j]=(j<<2)|(dd^1);ts[j]=ts[i];dist[j]=dist[i]+1}}}
+    else{for(let dd=0;dd<4;dd++){if(!ok(i,dd))continue;const j=nb(i,dd),s=(j<<2)|(dd^1);if(rc[s]<=0)continue;
+        if(par[j]===NONE){sink[j]=1;par[j]=s;ts[j]=ts[i];dist[j]=dist[i]+1;act(j)}
+        else if(!sink[j]){mid=s;break}
+        else if(ts[j]<=ts[i]&&dist[j]>dist[i]){par[j]=s;ts[j]=ts[i];dist[j]=dist[i]+1}}}
+    T++;
+    if(mid<0)continue;
+    inQ[i]=1;cur=i;
+    const sN=mid>>2,tN=hd(mid);let b=rc[mid],k=sN;
+    while(par[k]!==TERM){const a=par[k],s=sis(a);if(rc[s]<b)b=rc[s];k=hd(a)}if(tr[k]<b)b=tr[k];
+    k=tN;while(par[k]!==TERM){const a=par[k];if(rc[a]<b)b=rc[a];k=hd(a)}if(-tr[k]<b)b=-tr[k];
+    rc[sis(mid)]+=b;rc[mid]-=b;
+    k=sN;while(par[k]!==TERM){const a=par[k],s=sis(a),nx=hd(a);rc[a]+=b;rc[s]-=b;if(rc[s]===0)orf(k);k=nx}
+    tr[k]-=b;if(tr[k]===0)orf(k);
+    k=tN;while(par[k]!==TERM){const a=par[k],s=sis(a),nx=hd(a);rc[s]+=b;rc[a]-=b;if(rc[a]===0)orf(k);k=nx}
+    tr[k]+=b;if(tr[k]===0)orf(k);
+    while(oh<orph.length){const o=orph[oh++],sk=sink[o];let amin=NONE,dmin=INF;
+      for(let dd=0;dd<4;dd++){if(!ok(o,dd))continue;const j=nb(o,dd);if(sink[j]!==sk||par[j]===NONE)continue;
+        if(sk?rc[(o<<2)|dd]<=0:rc[(j<<2)|(dd^1)]<=0)continue;
+        let d=0,jj=j;
+        for(;;){if(ts[jj]===T){d+=dist[jj];break}const a=par[jj];d++;if(a===TERM){ts[jj]=T;dist[jj]=1;break}if(a===ORPH){d=INF;break}jj=hd(a)}
+        if(d<INF){if(d<dmin){amin=(o<<2)|dd;dmin=d}for(jj=j;ts[jj]!==T;jj=hd(par[jj])){ts[jj]=T;dist[jj]=d--}}}
+      par[o]=amin;
+      if(amin!==NONE){ts[o]=T;dist[o]=dmin+1}
+      else for(let dd=0;dd<4;dd++){if(!ok(o,dd))continue;const j=nb(o,dd);if(sink[j]!==sk||par[j]===NONE)continue;const a=par[j];
+        if(sk?rc[(o<<2)|dd]>0:rc[(j<<2)|(dd^1)]>0)act(j);
+        if(a!==TERM&&a!==ORPH&&hd(a)===o)orf(j)}}
+    orph.length=0;oh=0}
+  const fg=new Uint8Array(n);for(let i=0;i<n;i++)fg[i]=par[i]!==NONE&&!sink[i]?1:0;return fg}
+/* смесь из K «пятен» цвета: взвешенные k-средних, затем у каждого пятна среднее и разброс */
+function gmmFit(P,cnt,K,prev){
+  const N=cnt.length,idx=[];let tot=0;for(let i=0;i<N;i++)if(cnt[i]>0){idx.push(i);tot+=cnt[i]}
+  if(!idx.length)return null;
+  let C=[];
+  if(prev&&prev.length)C=prev.map(g=>g.mu.slice());
+  else{let best=idx[0];for(const i of idx)if(cnt[i]>cnt[best])best=i;C.push([P[best*3],P[best*3+1],P[best*3+2]]);
+    const dm=new Float64Array(N).fill(Infinity);let seed=7;const rnd=()=>(seed=(seed*1103515245+12345)&0x7fffffff)/0x7fffffff;
+    while(C.length<K){const c=C[C.length-1];let sum=0;for(const i of idx){const a=P[i*3]-c[0],b=P[i*3+1]-c[1],e=P[i*3+2]-c[2],q=a*a+b*b+e*e;if(q<dm[i])dm[i]=q;sum+=dm[i]*cnt[i]}
+      if(sum<=1e-9)break;let r=rnd()*sum,pick=idx[idx.length-1];for(const i of idx){r-=dm[i]*cnt[i];if(r<=0){pick=i;break}}C.push([P[pick*3],P[pick*3+1],P[pick*3+2]])}}
+  const asg=new Int32Array(N);
+  for(let it=0;it<5;it++){const acc=C.map(()=>[0,0,0,0]);
+    for(const i of idx){let bk=0,bd=Infinity;for(let k=0;k<C.length;k++){const a=P[i*3]-C[k][0],b=P[i*3+1]-C[k][1],e=P[i*3+2]-C[k][2],q=a*a+b*b+e*e;if(q<bd){bd=q;bk=k}}
+      asg[i]=bk;const s=acc[bk],w=cnt[i];s[0]+=P[i*3]*w;s[1]+=P[i*3+1]*w;s[2]+=P[i*3+2]*w;s[3]+=w}
+    C=C.map((c,k)=>acc[k][3]?[acc[k][0]/acc[k][3],acc[k][1]/acc[k][3],acc[k][2]/acc[k][3]]:c)}
+  const G=[];
+  for(let k=0;k<C.length;k++){let w=0;const m=C[k],S=[0,0,0,0,0,0];
+    for(const i of idx){if(asg[i]!==k)continue;const c=cnt[i],a=P[i*3]-m[0],b=P[i*3+1]-m[1],e=P[i*3+2]-m[2];w+=c;S[0]+=a*a*c;S[1]+=a*b*c;S[2]+=a*e*c;S[3]+=b*b*c;S[4]+=b*e*c;S[5]+=e*e*c}
+    if(!w)continue;const E=1.5,xx=S[0]/w+E,xy=S[1]/w,xz=S[2]/w,yy=S[3]/w+E,yz=S[4]/w,zz=S[5]/w+E;
+    const c00=yy*zz-yz*yz,c01=xz*yz-xy*zz,c02=xy*yz-xz*yy,det=xx*c00+xy*c01+xz*c02;
+    G.push({mu:m,iv:[c00/det,c01/det,c02/det,(xx*zz-xz*xz)/det,(xy*xz-xx*yz)/det,(xx*yy-xy*xy)/det],lk:Math.log(w/tot)-.5*Math.log(det)-2.7568})}
+  return G}
+/* «цена» цвета для смеси: минус логарифм правдоподобия */
+function gmmCost(G,x,y,z){let mx=-Infinity,s=0;
+  for(const g of G){const a=x-g.mu[0],b=y-g.mu[1],c=z-g.mu[2],I=g.iv,l=g.lk-.5*(a*a*I[0]+b*b*I[3]+c*c*I[5]+2*(a*b*I[1]+a*c*I[2]+b*c*I[4]));
+    if(l>mx){s=s*Math.exp(mx-l)+1;mx=l}else s+=Math.exp(l-mx)}
+  return-(mx+Math.log(s))}
+/* подготовка: цвета пикселей (у фото — сгруппированные, чтобы не считать сотни тысяч оттенков) и «клей» между соседями */
+function segPrep(d,w,h){
+  const n=w*h,idx=new Int32Array(n).fill(-1),map=new Map(),acc=[];let uniq=new Set();
+  for(let p=0;p<n;p++){const i=p*4;if(d[i+3]<128)continue;uniq.add((d[i]<<16)|(d[i+1]<<8)|d[i+2]);if(uniq.size>4096)break}
+  const bin=uniq.size>4096;uniq=null;
+  for(let p=0;p<n;p++){const i=p*4;if(d[i+3]<128)continue;const key=bin?((d[i]>>3)<<10)|((d[i+1]>>3)<<5)|(d[i+2]>>3):(d[i]<<16)|(d[i+1]<<8)|d[i+2];let k=map.get(key);
+    if(k===undefined){k=map.size;map.set(key,k);acc.push(0,0,0,0)}idx[p]=k;acc[k*4]+=d[i];acc[k*4+1]+=d[i+1];acc[k*4+2]+=d[i+2];acc[k*4+3]++}
+  const U=map.size,P=new Float64Array(U*3);
+  for(let k=0;k<U;k++){const c=acc[k*4+3],q=toOk([acc[k*4]/c,acc[k*4+1]/c,acc[k*4+2]/c]);P[k*3]=q[0]*100;P[k*3+1]=q[1]*100;P[k*3+2]=q[2]*100}
+  const cr=new Float64Array(n),cd=new Float64Array(n);let sum=0,cntp=0;
+  const df=(p,q)=>{const a=idx[p],b=idx[q];if(a<0||b<0)return-1;const x=P[a*3]-P[b*3],y=P[a*3+1]-P[b*3+1],z=P[a*3+2]-P[b*3+2];return x*x+y*y+z*z};
+  for(let p=0;p<n;p++){if(p%w<w-1){const v=df(p,p+1);if(v>=0){sum+=v;cntp++}}if(p+w<n){const v=df(p,p+w);if(v>=0){sum+=v;cntp++}}}
+  const beta=cntp&&sum>0?cntp/(2*sum):0,gam=40*16;
+  for(let p=0;p<n;p++){if(p%w<w-1){const v=df(p,p+1);cr[p]=v<0?0:Math.round(gam*Math.exp(-beta*v))}if(p+w<n){const v=df(p,p+w);cd[p]=v<0?0:Math.round(gam*Math.exp(-beta*v))}}
+  return{w,h,n,idx,P,U,cr,cd}}
+/* один разрез при данных смесях. bias > 0 — убирать смелее */
+function segCut(S,M,hard,bias){
+  const{n,idx,U,P}=S,BIG=1e12,tr=new Float64Array(n);
+  if(!M.Df){M.Df=new Float64Array(U);M.Db=new Float64Array(U);for(let k=0;k<U;k++){M.Df[k]=gmmCost(M.Gf,P[k*3],P[k*3+1],P[k*3+2]);M.Db[k]=gmmCost(M.Gb,P[k*3],P[k*3+1],P[k*3+2])}}
+  const b=Math.round((bias||0)*16);
+  for(let p=0;p<n;p++){const k=idx[p];if(k<0||hard&&hard[p]===1)tr[p]=-BIG;else if(hard&&hard[p]===2)tr[p]=BIG;else tr[p]=Math.round(16*(M.Db[k]-M.Df[k]))-b}
+  return maxflowGrid(S.w,S.h,tr,S.cr,S.cd)}
+/* фон, до которого не дотечь от anchor (снаружи обводки, рамка, тапы), остаётся объекту — глаза, блики, рубашка цвета фона.
+   Если попросили holes — убираем и такие «дырки». В ответе только непрозрачные пиксели объекта */
+function segFinish(S,lab,anchor,holes,hard){
+  const{n,w,idx}=S,L=lab.slice();
+  if(!holes&&anchor){const seen=new Uint8Array(n),st=[];for(let p=0;p<n;p++)if(anchor[p]&&!L[p]){seen[p]=1;st.push(p)}
+    while(st.length){const p=st.pop(),x=p%w;if(x>0&&!seen[p-1]&&!L[p-1]){seen[p-1]=1;st.push(p-1)}if(x<w-1&&!seen[p+1]&&!L[p+1]){seen[p+1]=1;st.push(p+1)}
+      if(p>=w&&!seen[p-w]&&!L[p-w]){seen[p-w]=1;st.push(p-w)}if(p+w<n&&!seen[p+w]&&!L[p+w]){seen[p+w]=1;st.push(p+w)}}
+    for(let p=0;p<n;p++)if(!L[p]&&!seen[p]&&idx[p]>=0&&!(hard&&hard[p]===1))L[p]=1}
+  let any=0;for(let p=0;p<n;p++){if(idx[p]<0)L[p]=0;any+=L[p]}
+  return any?L:null}
+/* весь проход: o.hard (1 — точно фон, 2 — точно объект), o.init (стартовая догадка, 1 — объект), o.anchor, o.holes.
+   Возвращает {mask, M} — M (смеси) можно переиспользовать, чтобы быстро пересчитать с другим bias */
+function segObject(d,w,h,o){
+  const S=o.prep||segPrep(d,w,h),{n,idx,U,P}=S;if(!U)return{S,mask:null,M:null};
+  const hard=o.hard,lab=new Uint8Array(n);
+  for(let p=0;p<n;p++)lab[p]=idx[p]<0||hard&&hard[p]===1?0:hard&&hard[p]===2?1:o.init[p]?1:0;
+  let M=null,Gf=null,Gb=null;
+  for(let it=0;it<(o.iters||6);it++){
+    const cf=new Float64Array(U),cb=new Float64Array(U);for(let p=0;p<n;p++){const k=idx[p];if(k<0)continue;if(lab[p])cf[k]++;else cb[k]++}
+    Gf=gmmFit(P,cf,5,Gf);Gb=gmmFit(P,cb,5,Gb);if(!Gf||!Gb)break;
+    M={Gf,Gb};const fg=segCut(S,M,hard,0);let ch=0;for(let p=0;p<n;p++)if(fg[p]!==lab[p]){ch++;lab[p]=fg[p]}
+    if(ch<=n*.0005)break}
+  return{S,M,lab,mask:segFinish(S,lab,o.anchor,o.holes,hard)}}
+/* «Точно по объекту»: всё, что снаружи обводки (полоса вокруг неё), — образец фона; внутри решает разрез.
+   Фон, который не связан с обводкой (глаза, блики того же цвета), остаётся объекту. Если отделить нечего — null */
+function smartMask(M,d,W,H){
+  const b=selBounds(M,W,H);if(!b)return null;
+  const g=clamp(Math.round(.15*Math.max(b.w,b.h)),3,24),x0=Math.max(0,b.x-g),y0=Math.max(0,b.y-g),x1=Math.min(W,b.x+b.w+g),y1=Math.min(H,b.y+b.h+g),w=x1-x0,h=y1-y0,n=w*h;
+  const sub=new Uint8ClampedArray(n*4),hard=new Uint8Array(n),init=new Uint8Array(n),anc=new Uint8Array(n);let out=0;
+  for(let y=0;y<h;y++){sub.set(d.subarray(((y0+y)*W+x0)*4,((y0+y)*W+x1)*4),y*w*4);
+    for(let x=0;x<w;x++){const q=y*w+x;if(M[(y0+y)*W+x0+x]){init[q]=1;if(x===0||y===0||x===w-1||y===h-1)anc[q]=1}else{hard[q]=1;anc[q]=1;out++}}}
+  if(!out){const t=Math.max(1,Math.round(Math.min(w,h)*.03));for(let q=0;q<n;q++){const x=q%w,y=q/w|0;if(x<t||y<t||x>=w-t||y>=h-t)init[q]=0}}
+  const R=segObject(sub,w,h,{hard,init,anchor:anc});if(!R.mask)return null;
+  const res=new Uint8Array(W*H);let kept=0;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(R.mask[y*w+x]){res[(y0+y)*W+x0+x]=1;kept++}
+  return kept?res:null}
 /* быстрые кнопки над холстом, пока что-то выделено или «в руке» */
 /* ---------- масштаб того, что «в руке» ----------
    Размер всегда пересчитывается из исходных пикселей (F.src): чётко — ближайший пиксель, мягко — среднее (для фото).
    Если при вставке выбирали цвета палитры или свои N, они применяются и после масштаба */
 const FLOAT_MAX=8e6;
-function scaleFloatTo(nw,nh,fast,pos){
-  const F=st.float;if(!F||!F.src)return;const S=F.src;
-  nw=clamp(Math.round(nw)||1,1,4096);nh=clamp(Math.round(nh)||1,1,4096);
-  if(nw*nh>FLOAT_MAX){const k=Math.sqrt(FLOAT_MAX/(nw*nh));nw=Math.max(1,Math.floor(nw*k));nh=Math.max(1,Math.floor(nh*k))}
-  const cx=F.x+F.w/2,cy=F.y+F.h/2;
+function renderSrc(S,nw,nh,fast){
   const d=(!fast&&S.rs==='soft'&&nw<S.w)?resampleArea(S.d,S.w,S.h,nw,nh):resampleNearest(S.d,S.w,S.h,nw,nh);
   if(S.hard)for(let i=3;i<d.length;i+=4)d[i]=d[i]>=128?255:0;
   if(!fast&&S.centers)mapToColors(d,S.centers);
   const m=new Uint8Array(nw*nh);
   if(S.m){for(let y=0;y<nh;y++){const sy=Math.min(S.h-1,Math.floor((y+.5)*S.h/nh));for(let x=0;x<nw;x++){const sx=Math.min(S.w-1,Math.floor((x+.5)*S.w/nw));m[y*nw+x]=S.m[sy*S.w+sx]}}}
   else for(let i=0;i<m.length;i++)m[i]=d[i*4+3]?1:0;
+  return{d,m}}
+function scaleFloatTo(nw,nh,fast,pos){
+  const F=st.float;if(!F||!F.src)return;const S=F.src;
+  nw=clamp(Math.round(nw)||1,1,4096);nh=clamp(Math.round(nh)||1,1,4096);
+  if(nw*nh>FLOAT_MAX){const k=Math.sqrt(FLOAT_MAX/(nw*nh));nw=Math.max(1,Math.floor(nw*k));nh=Math.max(1,Math.floor(nh*k))}
+  const cx=F.x+F.w/2,cy=F.y+F.h/2;
+  const{d,m}=renderSrc(S,nw,nh,fast);
   F.data=d;F.mask=m;F.w=nw;F.h=nh;F.whole=false;
   if(pos){F.x=pos.x;F.y=pos.y}else{F.x=Math.round(cx-nw/2);F.y=Math.round(cy-nh/2)}
   buildFloatCanvas();syncSelBar();requestRender()}
@@ -983,6 +1098,7 @@ function endFgest(){const g=fgest;fgest=null;if(!g)return;if(g.raf)cancelAnimati
   syncSelBar();renderOptions();requestRender()}
 function syncSelBar(){const b=$('#selBar');if(!b)return;const on=!!(st.sel||st.float);if(b.hidden===on)b.hidden=!on;const d=$('#selDone');if(d&&d.hidden===!!st.float)d.hidden=!st.float;
   const sc=$('#selScale'),F=st.float,sh=!!((F&&F.src)||(!F&&st.sel));if(sc&&sc.hidden===sh)sc.hidden=!sh;
+  const bg=$('#selBg');if(bg){const t=F&&F.srcPrev?'Вернуть фон':'Убрать фон';if(bg.textContent!==t)bg.textContent=t}
   if(sh){let t;if(F)t=F.w+'×'+F.h;else{if(selSizeVer!==selVer){selSizeVer=selVer;const r=selBounds(st.sel,doc.w,doc.h);selSizeTxt=r?r.w+'×'+r.h:''}t=selSizeTxt}const e=$('#scSize');if(e.textContent!==t)e.textContent=t}}
 let selSizeVer=-1,selSizeTxt='';
 const inHand=()=>!!st.float||ensureFloat();
@@ -1035,7 +1151,7 @@ function transformFloat(fn){if(!ensureFloat())return;const F=st.float,nd=new Uin
   F.w=nw;F.h=nh;F.data=nd;F.mask=nm;
   if(F.src){const S=F.src,sw=fn.swap?S.h:S.w,sh=fn.swap?S.w:S.h,sd=new Uint8ClampedArray(S.d.length),sm=S.m?new Uint8Array(S.m.length):null;
     for(let y=0;y<S.h;y++)for(let x=0;x<S.w;x++){const a=y*S.w+x,[tx,ty]=fn(x,y,S.w,S.h),b=ty*sw+tx;if(sm)sm[b]=S.m[a];sd.set(S.d.subarray(a*4,a*4+4),b*4)}
-    F.src={...S,d:sd,m:sm,w:sw,h:sh};F.srcDirty=true}
+    F.src={...S,d:sd,m:sm,w:sw,h:sh};F.srcDirty=true;F.srcPrev=null}
   if(F.whole){ /* весь слой: отражаем и поворачиваем вокруг центра холста, вместе с тем, что за краем */
     if(fn.kind==='h')F.x=doc.w-ox-ow;else if(fn.kind==='v')F.y=doc.h-oy-oh;
     else if(fn.swap){F.x=Math.floor((doc.w+doc.h-2)/2)-oy-oh+1;F.y=Math.floor((doc.h-doc.w)/2)+ox}
@@ -1147,7 +1263,8 @@ function endStroke(){
   if(s.tool==='select'){const[sx,sy]=s.start,[ex,ey]=s.last;if(sx===ex&&sy===ey&&s.mode==='new'){st.sel=null;selChanged();return}setSelection(rectMask(sx,sy,ex,ey),s.mode);return}
   if(s.tool==='lasso'){if(s.pts.length<3){if(s.mode==='new'){st.sel=null;selChanged()}else requestRender();return}
     let m=polyMask(s.pts);
-    if(st.smart){const r=smartMask(m,cel(),doc.w,doc.h);if(r)m=r;else toast('Объект от фона не отделился: выделил по твоей линии')}
+    if(st.smart){const mode=s.mode,go=()=>{const r=smartMask(m,cel(),doc.w,doc.h);if(!r)toast('Объект от фона не отделился: выделил по твоей линии');setSelection(r||m,mode)};
+      let k=0;for(let i=0;i<m.length;i++)k+=m[i];if(k>40000){toast('Ищу край объекта…');setTimeout(go,40)}else go();return}
     setSelection(m,s.mode);return}
   P=null;
   if(s.before){const d=cel(s.l,s.f),mv=s.tool==='move',spc=mv&&!spEq(d.sp,s.sb);
@@ -1547,7 +1664,7 @@ addEventListener('keyup',e=>{if(e.code==='Space')spaceDown=false});
 /* ---------- top bar ---------- */
 $('#undoBtn').onclick=undo;$('#redoBtn').onclick=redo;
 $('#selBar').addEventListener('pointerdown',e=>e.stopPropagation());
-$('#selOff').onclick=()=>ACT.deselect();$('#selDone').onclick=()=>ACT.commit();
+$('#selOff').onclick=()=>ACT.deselect();$('#selBg').onclick=()=>{if(st.float&&st.float.srcPrev)rmbgRestore();else rmbgDialog()};$('#selDone').onclick=()=>ACT.commit();
 function setFocus(on){
   st.focus=!!on;stage.classList.toggle('focus',st.focus);$('#focusBtn').setAttribute('aria-pressed',st.focus);
   if(st.focus)toast('Окна спрятаны. Вернуть: четыре пальца, клавиша Tab или кнопка «Окна» внизу');
@@ -1828,12 +1945,119 @@ document.addEventListener('paste',e=>{if(!$('#modal').hidden||e.target.matches&&
   const f=[...((e.clipboardData&&e.clipboardData.files)||[])].find(x=>/^image\//.test(x.type));
   if(f){e.preventDefault();insertDialog(f,f.name||'Из буфера')}else ACT.paste()});
 
+/* ---------- «Убрать фон» ----------
+   Берёт то, что «в руке» (например, только что вставленную картинку), выделенное место на слое или весь текущий слой.
+   Фон ищется с краёв картинки (у выделения — вокруг него), дальше тот же разрез, что у «Точно по объекту».
+   Тапы по превью — подсказки: «это фон» или «это оставить». У вставленной картинки фон убирается и из оригинала,
+   поэтому масштаб и «1:1» потом тоже без фона */
+const SEG_MIN=65536,SEG_MAX=262144;
+function segWork(S,dw,dh){const A=clamp(dw*dh,SEG_MIN,SEG_MAX);if(S.w*S.h<=A)return{d:S.d,w:S.w,h:S.h};
+  const k=Math.sqrt(A/(S.w*S.h)),w=Math.max(1,Math.round(S.w*k)),h=Math.max(1,Math.round(S.h*k));return{d:resampleArea(S.d,S.w,S.h,w,h),w,h}}
+function maskSrc(S,keep,kw,kh){const d=new Uint8ClampedArray(S.d),m=S.m?S.m.slice():null;
+  for(let y=0;y<S.h;y++){const ky=Math.min(kh-1,Math.floor((y+.5)*kh/S.h));for(let x=0;x<S.w;x++){const kx=Math.min(kw-1,Math.floor((x+.5)*kw/S.w));
+    if(!keep[ky*kw+kx]){const p=y*S.w+x;d.fill(0,p*4,p*4+4);if(m)m[p]=0}}}
+  return{...S,d,m,hard:true}}
+async function rmbgTarget(){
+  if(st.float){const F=st.float;return{kind:'float',S:F.src||srcOf(F),dw:F.w,dh:F.h}}
+  const L=doc.layers[st.layer];if(!L.visible){toast('Слой скрыт. Включи его, чтобы убрать фон');return null}
+  const c=cel(),W=doc.w,H=doc.h;
+  /* выделение: фон ищем по краям всего нарисованного на слое (так рамка выделения может резать объект), меняем только внутри */
+  if(st.sel){const om=new Uint8Array(W*H);let a=0;for(let p=0;p<om.length;p++)if(c[p*4+3]){om[p]=1;if(st.sel[p])a++}
+    if(!a){toast('В выделенном месте пусто');return 0}
+    const b=selBounds(om,W,H),x0=b.x,y0=b.y,w=b.w,h=b.h,d=new Uint8ClampedArray(w*h*4),aff=new Uint8Array(w*h);
+    for(let y=0;y<h;y++){d.set(c.subarray(((y0+y)*W+x0)*4,((y0+y)*W+x0+w)*4),y*w*4);for(let x=0;x<w;x++)aff[y*w+x]=st.sel[(y0+y)*W+x0+x]}
+    return{kind:'sel',S:{d,w,h},dw:w,dh:h,x0,y0,aff}}
+  if(L.img&&L.img.f===st.frame&&celHash(c)===L.img.hash){const I=L.img,S=await imgLoad(I.key);if(S)return{kind:'layer',S,dw:I.w,dh:I.h}}
+  const m=new Uint8Array(W*H);let any=false;for(let p=0;p<m.length;p++)if(c[p*4+3]){m[p]=1;any=true}
+  if(!any){if(!c.sp)return null;m.fill(1)}
+  const g=extractSel(c,m,!!c.sp&&coversLayer(c,m),false);if(!g)return null;
+  return{kind:'layer',S:{d:g.data,m:g.mask,w:g.R.w,h:g.R.h,rs:'sharp',hard:false,centers:null},dw:g.R.w,dh:g.R.h}}
+async function rmbgDialog(){
+  if(st.playing)stopPlay();
+  const T=await rmbgTarget();
+  if(!T){if(T===null&&doc.layers[st.layer].visible)toast('Тут пока нечего чистить: на слое пусто');return}
+  const sel=T.kind==='sel',Wk=sel?T.S:segWork(T.S,T.dw,T.dh),w=Wk.w,h=Wk.h,n=w*h,dw=T.dw,dh=T.dh,L=doc.layers[st.layer];
+  const prep=segPrep(Wk.d,w,h),base=new Uint8Array(n),init=new Uint8Array(n),anc=new Uint8Array(n),opq=new Uint8Array(n),seeds=new Uint8Array(n);
+  for(let p=0;p<n;p++)opq[p]=Wk.d[p*4+3]>=128?1:0;
+  let edgeBg=true;
+  {const t=Math.max(1,Math.round(Math.min(w,h)*.03));let rn=0,ro=0;
+    for(let p=0;p<n;p++){const x=p%w,y=p/w|0,r=x<t||y<t||x>=w-t||y>=h-t;init[p]=r?0:1;if(r){anc[p]=1;rn++;ro+=opq[p]}}
+    /* по краям в основном прозрачно — это уже вырезанный спрайт, фон не угадываем, ждём тапа */
+    if(ro<Math.max(4,rn*.5)){edgeBg=false;init.fill(1)}}
+  const OR=sel?{d:Wk.d,m:null}:renderSrc(T.S,dw,dh,false),orig=OR.d,om=OR.m;
+  let bias=0,holes=false,view='mark',R=null,keep=null,remD=new Uint8Array(dw*dh),nRem=0,busy=true,drag=null;
+  const what=T.kind==='float'?`То, что в руке: ${dw}×${dh}`:sel?`Выделенное место на слое «${esc(L.name)}»`:`Весь слой «${esc(L.name)}»`;
+  showModal(`<h2>Убрать фон</h2><p class="hint">${what}</p>
+  <div class="insprev rbprev"><canvas id="rbCv"></canvas><p class="hint" id="rbInfo">Ищу фон…</p></div>
+  <p class="hint">Тапни по картинке: по фону — уберётся, по нужному — вернётся. Можно вести пальцем.</p>
+  <label>Убирать <span class="hint">меньше</span><input type="range" id="rbBias" min="-6" max="6" step="0.5" value="0"><span class="hint">больше</span></label>
+  <label class="check"><input type="checkbox" id="rbHoles"> И фон внутри: просветы и дырки, до которых не дотечь с краёв</label>
+  <div class="seg"><button class="btn small" data-rv="mark">Отметить убранное</button><button class="btn small" data-rv="res">Как будет</button></div>
+  <div class="actions"><button class="btn" id="rbReset">Сбросить</button><button class="btn" data-close>Отмена</button><button class="btn primary" id="rbGo" disabled>Убрать фон</button></div>`,()=>{drag=null},'wide');
+  const cv=$('#rbCv'),fit=Math.min(700/dw,380/dh),sc=fit>=1?Math.min(24,Math.floor(fit)):fit;
+  cv.width=dw;cv.height=dh;cv.style.width=Math.max(1,Math.round(dw*sc))+'px';cv.style.height=Math.max(1,Math.round(dh*sc))+'px';
+  const cx=cv.getContext('2d');
+  const compute=full=>{
+    const hard=new Uint8Array(n),a=anc.slice();let sb=false;
+    for(let p=0;p<n;p++){hard[p]=base[p]||seeds[p];if(seeds[p]===1){a[p]=1;sb=true}}
+    if(!edgeBg&&!sb){R=null;keep=opq.slice()}
+    else{if(full||!R)R=segObject(Wk.d,w,h,{prep,hard,init,anchor:a,holes});
+      let lab=R.lab||null;if(lab&&R.M&&bias)lab=segCut(prep,R.M,hard,bias);
+      keep=(lab&&segFinish(prep,lab,a,holes,hard))||new Uint8Array(n)}
+    if(sel){for(let p=0;p<n;p++)remD[p]=opq[p]&&T.aff[p]&&!keep[p]?1:0}
+    else{const km=renderSrc(maskSrc(T.S,keep,w,h),dw,dh,false).m;for(let q=0;q<dw*dh;q++)remD[q]=om[q]&&orig[q*4+3]&&!km[q]?1:0}
+    nRem=0;for(let q=0;q<remD.length;q++)nRem+=remD[q]};
+  const draw=()=>{const im=new ImageData(dw,dh),o=im.data;
+    for(let q=0;q<dw*dh;q++){const i=q*4,al=orig[i+3];if(!al||(om&&!om[q]))continue;
+      if(remD[q]){if(view==='res')continue;o[i]=orig[i]*.35+166;o[i+1]=orig[i+1]*.35+40;o[i+2]=orig[i+2]*.35+90;o[i+3]=255}
+      else{o[i]=orig[i];o[i+1]=orig[i+1];o[i+2]=orig[i+2];o[i+3]=sel&&!T.aff[q]&&view==='mark'?Math.round(al*.35):al}}
+    cx.putImageData(im,0,0)};
+  const info=()=>{let t;const tot=om?om.reduce((x,v)=>x+v,0):(sel?T.aff.reduce((x,v)=>x+v,0):dw*dh);
+    if(!edgeBg&&!seeds.includes(1))t='По краям уже прозрачно, фон брать неоткуда. Тапни по фону, который надо убрать.';
+    else if(!nRem)t='Фон не нашёлся. Тапни по нему или сдвинь ползунок к «больше».';
+    else t=view==='res'?'Так будет после «Убрать фон».':`Розовым — то, что уберётся (${Math.max(1,Math.round(nRem*100/Math.max(1,tot)))}%).`;
+    $('#rbInfo').textContent=t;$('#rbGo').disabled=busy||!nRem};
+  const run=full=>{busy=true;$('#rbGo').disabled=true;if(n>40000)$('#rbInfo').textContent='Считаю…';
+    setTimeout(()=>{if($('#rbCv')!==cv)return;compute(full);busy=false;draw();info()},n>40000?40:0)};
+  const sync=()=>$('#sheet').querySelectorAll('[data-rv]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.rv===view));
+  /* тап и проведение пальцем: отметки в рабочем размере (у большой картинки один пиксель превью — целый блочок) */
+  const at=e=>{const r=cv.getBoundingClientRect();return[Math.floor((e.clientX-r.left)/r.width*dw),Math.floor((e.clientY-r.top)/r.height*dh)]};
+  const mark=(x,y,v)=>{if(x<0||y<0||x>=dw||y>=dh)return;const x0=Math.floor(x*w/dw),x1=Math.max(x0+1,Math.floor((x+1)*w/dw)),y0=Math.floor(y*h/dh),y1=Math.max(y0+1,Math.floor((y+1)*h/dh));
+    for(let yy=y0;yy<y1;yy++)for(let xx=x0;xx<x1;xx++){const p=yy*w+xx;if(opq[p]&&(!sel||T.aff[p]))seeds[p]=v}
+    cx.fillStyle=v===1?'#ff3d8b':'#3ddc84';cx.fillRect(x,y,1,1)};
+  cv.onpointerdown=e=>{if(busy)return;e.preventDefault();const[x,y]=at(e);if(x<0||y<0||x>=dw||y>=dh)return;const q=y*dw+x;
+    if(!orig[q*4+3]||(om&&!om[q]))return;if(sel&&!T.aff[q]){toast('Это за выделением: его не трогаю');return}
+    try{cv.setPointerCapture(e.pointerId)}catch{}drag={v:remD[q]?2:1,x,y};mark(x,y,drag.v)};
+  cv.onpointermove=e=>{if(!drag)return;const[x,y]=at(e);let x0=drag.x,y0=drag.y;const dx=Math.abs(x-x0),dy=-Math.abs(y-y0),sx=x0<x?1:-1,sy=y0<y?1:-1;let er=dx+dy;
+    for(let i=0;i<4096;i++){mark(x0,y0,drag.v);if(x0===x&&y0===y)break;const e2=2*er;if(e2>=dy){er+=dy;x0+=sx}if(e2<=dx){er+=dx;y0+=sy}}drag.x=x;drag.y=y};
+  cv.onpointerup=cv.onpointercancel=()=>{if(!drag)return;drag=null;run(true)};
+  $('#rbBias').oninput=e=>{bias=+e.target.value;if(!busy)run(false)};
+  $('#rbBias').onchange=e=>{bias=+e.target.value;run(false)};
+  $('#rbHoles').onchange=e=>{holes=e.target.checked;run(false)};
+  $('#sheet').querySelectorAll('[data-rv]').forEach(b=>b.onclick=()=>{view=b.dataset.rv;sync();draw();info()});
+  $('#rbReset').onclick=()=>{seeds.fill(0);bias=0;holes=false;$('#rbBias').value='0';$('#rbHoles').checked=false;R=null;run(true)};
+  $('#rbGo').onclick=()=>{if(busy||!nRem||!keep)return;const k=keep;closeModal();rmbgApply(T,k,w,h)};
+  sync();run(true)}
+function rmbgApply(T,keep,w,h){
+  if(T.kind==='sel'){const c=cel(),W=doc.w,before=c.slice(),ns=new Uint8Array(W*doc.h);let k=0;
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){const q=y*w+x;if(!T.aff[q])continue;const p=(T.y0+y)*W+T.x0+x;if(!c[p*4+3])continue;if(keep[q])ns[p]=1;else{c.fill(0,p*4,p*4+4);k++}}
+    if(k){pushUndo({type:'cel',l:st.layer,f:st.frame,before,after:c.slice()});changed(true)}
+    st.sel=ns.some(v=>v)?ns:null;selChanged();toast(k?'Фон убран, объект остался выделенным. Вернуть — «Отменить»':'Убирать оказалось нечего');return}
+  let lifted=false;
+  if(T.kind==='layer'){if(!liftLayer()){toast('Не получилось взять слой');return}lifted=true}
+  const F=st.float;if(!F)return;const S=F.src||srcOf(F);
+  if(S.w!==T.S.w||S.h!==T.S.h){if(lifted){commitFloat();st.sel=null;selChanged()}toast('Не получилось: картинка успела измениться');return}
+  const wh=F.whole;F.srcPrev=lifted?null:S;F.src=maskSrc(S,keep,w,h);F.srcDirty=true;scaleFloatTo(F.w,F.h,false,{x:F.x,y:F.y});F.whole=wh;
+  if(lifted){commitFloat();st.sel=null;selChanged();toast('Фон убран. Вернуть — «Отменить»')}
+  else{syncSelBar();toast('Фон убран. Картинка ещё в руке: «Вернуть фон» сверху, если передумаешь, потом «Готово»')}}
+function rmbgRestore(){const F=st.float;if(!F||!F.srcPrev)return;const wh=F.whole;F.src=F.srcPrev;F.srcPrev=null;F.srcDirty=true;scaleFloatTo(F.w,F.h,false,{x:F.x,y:F.y});F.whole=wh;syncSelBar();toast('Фон вернулся')}
+
 /* ---------- edit & view menus ---------- */
 $('#editBtn').onclick=()=>{
   const has=!!(st.sel||st.float);
   const b=(a,l,dis)=>`<button class="btn" data-e="${a}" ${dis?'disabled':''}>${l}</button>`;
   showModal(`<h2>Правка</h2><div class="menu">
-  ${b('image','Вставить картинку… (фото, файл, буфер)')}
+  ${b('image','Вставить картинку… (фото, файл, буфер)')}${b('rmbg',st.float?'Убрать фон у того, что в руке…':st.sel?'Убрать фон в выделенном…':'Убрать фон со слоя…')}
   ${b('copy','Копировать')}${b('cut','Вырезать')}${b('paste','Вставить',!clip)}${b('del','Удалить выделенное',!has)}
   <h3>Выделение</h3>${b('selall','Выделить всё')}${b('deselect','Снять выделение',!has)}${b('invert','Инвертировать')}
   <h3>Отразить и повернуть (выделенное или весь слой)</h3>${b('flipH','Отразить по горизонтали')}${b('flipV','Отразить по вертикали')}${b('rot','Повернуть на 90°')}
@@ -1842,7 +2066,7 @@ $('#editBtn').onclick=()=>{
   <h3>Слой целиком</h3>${b('xform','Масштаб и положение слоя')}</div>
   <div class="actions"><button class="btn" data-close>Закрыть</button></div>`);
   $('#sheet').querySelectorAll('[data-e]').forEach(x=>x.onclick=()=>{const a=x.dataset.e;closeModal();
-    if(a==='replace')replaceDialog();else if(a==='outline')outlineDialog();else if(a==='adjust')adjustDialog();else if(a==='motion')motionDialog();else if(a==='image')insertDialog();else ACT[a]()});
+    if(a==='replace')replaceDialog();else if(a==='outline')outlineDialog();else if(a==='adjust')adjustDialog();else if(a==='motion')motionDialog();else if(a==='image')insertDialog();else if(a==='rmbg')rmbgDialog();else ACT[a]()});
 };
 function viewMenu(){
   showModal(`<h2>Вид</h2><div class="menu">
@@ -2408,7 +2632,8 @@ function showHelp(){showModal(`<h2>Жесты и клавиши</h2><dl class="k
   <dt>Удержать палец</dt><dd>Пипетка, как в Procreate. Не отпуская, веди пальцем, чтобы выбрать точнее</dd>
   <dt>Один палец</dt><dd>Рисует, пока не коснёшься Pencil. После этого палец двигает холст, а рисует только стилус. Поменять можно в меню «Вид»</dd>
   <dt>Выделение</dt><dd>Потяни внутри выделения, чтобы сдвинуть его. Тап по выделению снимает его. Над холстом появляются кнопки «Снять выделение» и «Готово» (оно впечатывает сдвинутое)</dd>
-  <dt>Лассо</dt><dd>Обведи объект с запасом: с включённым «Точно по объекту» выделится только он, без фона вокруг</dd>
+  <dt>Лассо</dt><dd>Обведи объект с запасом: с включённым «Точно по объекту» выделится только он, без фона вокруг. Граница ищется там, где цвет объекта сменяется цветом фона, даже если фон пёстрый</dd>
+  <dt>Убрать фон</dt><dd>Кнопка «Убрать фон» над холстом (когда что-то выделено или «в руке») или Правка → «Убрать фон». Работает с тем, что в руке, с выделенным местом или со всем слоем. В окне видно розовым, что уберётся; тап по картинке поправляет: по фону — убрать, по нужному — оставить. Ползунок решает, убирать смелее или осторожнее</dd>
   <dt>Край холста</dt><dd>Слой можно двигать за край холста. Что вышло за край, не пропадает: видно бледным силуэтом, и оно вернётся, если сдвинуть слой назад. Спрятать силуэт: кнопка с рамкой внизу справа или меню «Вид»</dd>
   <dt>Угол холста</dt><dd>Две кнопки слева внизу: «Только рисунок» прячет всё, «Только главное» оставляет инструменты и палитру. Нажми ещё раз — вернётся всё</dd>
   <dt>Отразить вид</dt><dd>Клавиша F или кнопка внизу. Рисунок на экране зеркалится, чтобы взглянуть свежим глазом. Сам рисунок не меняется, рисовать можно как обычно</dd>
@@ -2610,7 +2835,7 @@ function exportDialog(preset){
 $('#exportBtn').onclick=()=>exportDialog();
 
 /* ---------- storage: IndexedDB, falls back to Claude storage ---------- */
-const VERSION='3.6.1';
+const VERSION='3.7';
 const IDB=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{try{const r=indexedDB.open('pixelnya',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}}));
   const run=async(mode,fn)=>{const db=await open();return new Promise((res,rej)=>{const t=db.transaction('kv',mode),q=fn(t.objectStore('kv'));t.oncomplete=()=>res(q.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})};
   return{get:k=>run('readonly',s=>s.get(k)),set:(k,v)=>run('readwrite',s=>s.put(v,k)),del:k=>run('readwrite',s=>s.delete(k))}})();
