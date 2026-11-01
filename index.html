@@ -201,7 +201,7 @@ textarea.field{height:auto;padding:7px;resize:vertical}
 .pstrip i{width:10px;height:10px;display:block}
 .pstrip.big i{width:22px;height:22px}
 .fine{color:var(--muted);font-size:12px}
-.selbar{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:999999;display:flex;gap:6px;align-items:center;padding:5px;background:var(--win);border:2px solid var(--line);border-radius:3px;box-shadow:3px 3px 0 rgba(0,0,0,.28);max-width:calc(100% - 16px)}
+.selbar{position:absolute;top:8px;left:0;right:0;margin:0 auto;width:max-content;flex-wrap:wrap;justify-content:center;z-index:999999;display:flex;gap:6px;align-items:center;padding:5px;background:var(--win);border:2px solid var(--line);border-radius:3px;box-shadow:3px 3px 0 rgba(0,0,0,.28);max-width:calc(100% - 16px)}
 .selbar[hidden],.selbar .btn[hidden]{display:none}
 .spk{display:flex;align-items:center;padding:0 4px;color:var(--muted)}
 .spk[hidden]{display:none}
@@ -253,6 +253,9 @@ body.m-mini #winTools,body.m-mini #winPal{display:flex!important}
 .insprev canvas[hidden]{display:none}
 .insopts{display:flex;flex-direction:column;gap:8px}
 .insopts .seg .lbl{min-width:84px}
+.selscale{display:flex;gap:4px;align-items:center;padding-right:4px;border-right:2px solid var(--soft)}
+.selscale[hidden]{display:none}
+.selscale #scSize{min-width:78px;font-variant-numeric:tabular-nums}
 /* рампа: тени и света от текущего цвета */
 .rampbox{display:flex;flex-direction:column;gap:4px}
 .ramp-head{display:flex;align-items:center;gap:4px}
@@ -282,7 +285,7 @@ body.m-mini #winTools,body.m-mini #winPal{display:flex!important}
 </header>
 
 <main class="stage" id="stage"><canvas id="view"></canvas>
-  <div class="selbar" id="selBar" role="toolbar" aria-label="Выделение" hidden><button class="btn primary" id="selDone" hidden>Готово</button><button class="btn" id="selOff">Снять выделение</button></div>
+  <div class="selbar" id="selBar" role="toolbar" aria-label="Выделение" hidden><button class="btn primary" id="selDone" hidden>Готово</button><span class="selscale" id="selScale" hidden><button class="btn small" id="scFit" title="Вписать в холст">По холсту</button><button class="btn small" id="sc11" title="Исходный размер">1:1</button><button class="btn small icon" id="scMinus" aria-label="Меньше">−</button><button class="btn small" id="scSize" title="Задать размер точно">1×1</button><button class="btn small icon" id="scPlus" aria-label="Больше">+</button></span><button class="btn" id="selOff">Снять выделение</button></div>
   <div class="cornerbar" id="cornerBar" role="toolbar" aria-label="Режим экрана"><button class="btn small icon" id="cbUndo" data-icon="undo" aria-label="Отменить" hidden></button><button class="btn small icon" id="cbRedo" data-icon="redo" aria-label="Повторить" hidden></button><button class="btn small icon" id="modeClean" data-icon="clean" aria-pressed="false" aria-label="Только рисунок" title="Только рисунок: спрятать всё остальное"></button><button class="btn small icon" id="modeMini" data-icon="mini" aria-pressed="false" aria-label="Только главное" title="Только главное: инструменты и палитра"></button></div>
   <div class="chkbar" id="chkBar" role="toolbar" aria-label="Пиксель-чек" hidden><button class="btn small" data-ck="orphan" aria-pressed="true"><i style="background:#ff2bd6"></i>Сироты <b>0</b></button><button class="btn small" data-ck="corner" aria-pressed="true"><i style="background:#ff8a00"></i>Лишние углы <b>0</b></button><button class="btn small" data-ck="jag" aria-pressed="true"><i style="background:#00c2ff"></i>Ступеньки <b>0</b></button><button class="btn small" id="ckSim">Похожие цвета <b>0</b></button><button class="btn small" data-cv="bw" aria-pressed="false">Ч/Б</button><button class="btn small" data-cv="sil" aria-pressed="false" title="Силуэт текущего слоя">Силуэт</button><button class="btn small icon" id="ckHelp" aria-label="Что это значит">?</button><button class="btn small icon" id="ckClose" aria-label="Закрыть пиксель-чек">✕</button></div>
   <div class="nudge" id="nudge" role="status" hidden><span>Давно не было копии всех работ. Сохранить её сейчас?</span><button class="btn small primary" id="nuYes">Сделать копию</button><button class="btn small" id="nuNo">Позже</button></div>
@@ -777,6 +780,7 @@ function render(){
   if(A){vctx.save();vctx.setTransform(dpr*z,0,0,dpr*z,dpr*(x0+A.ox*z),dpr*(y0+A.oy*z));
     vctx.lineWidth=1.5/z;vctx.setLineDash([]);vctx.strokeStyle='#fff';vctx.stroke(A.p);
     vctx.setLineDash([4/z,4/z]);vctx.lineDashOffset=-(st.ants%8)/z;vctx.strokeStyle='#000';vctx.stroke(A.p);vctx.restore()}
+  drawHandles(x0,y0,z);
   if(hover&&!st.playing&&!stroke){
     const s=['pencil','eraser','line','rect','ellipse'].includes(st.tool)?st.size:1,o=Math.floor((s-1)/2);
     vctx.strokeStyle=accent();vctx.lineWidth=1.5;
@@ -880,7 +884,59 @@ function smartMask(M,d,w,h){
   return kept?res:null;
 }
 /* быстрые кнопки над холстом, пока что-то выделено или «в руке» */
-function syncSelBar(){const b=$('#selBar');if(!b)return;const on=!!(st.sel||st.float);if(b.hidden===on)b.hidden=!on;const d=$('#selDone');if(d&&d.hidden===!!st.float)d.hidden=!st.float}
+/* ---------- масштаб того, что «в руке» ----------
+   Размер всегда пересчитывается из исходных пикселей (F.src): чётко — ближайший пиксель, мягко — среднее (для фото).
+   Если при вставке выбирали цвета палитры или свои N, они применяются и после масштаба */
+const FLOAT_MAX=8e6;
+function scaleFloatTo(nw,nh,fast,pos){
+  const F=st.float;if(!F||!F.src)return;const S=F.src;
+  nw=clamp(Math.round(nw)||1,1,4096);nh=clamp(Math.round(nh)||1,1,4096);
+  if(nw*nh>FLOAT_MAX){const k=Math.sqrt(FLOAT_MAX/(nw*nh));nw=Math.max(1,Math.floor(nw*k));nh=Math.max(1,Math.floor(nh*k))}
+  const cx=F.x+F.w/2,cy=F.y+F.h/2;
+  const d=(!fast&&S.rs==='soft'&&nw<S.w)?resampleArea(S.d,S.w,S.h,nw,nh):resampleNearest(S.d,S.w,S.h,nw,nh);
+  if(S.hard)for(let i=3;i<d.length;i+=4)d[i]=d[i]>=128?255:0;
+  if(!fast&&S.centers)mapToColors(d,S.centers);
+  const m=new Uint8Array(nw*nh);
+  if(S.m){for(let y=0;y<nh;y++){const sy=Math.min(S.h-1,Math.floor((y+.5)*S.h/nh));for(let x=0;x<nw;x++){const sx=Math.min(S.w-1,Math.floor((x+.5)*S.w/nw));m[y*nw+x]=S.m[sy*S.w+sx]}}}
+  else for(let i=0;i<m.length;i++)m[i]=d[i*4+3]?1:0;
+  F.data=d;F.mask=m;F.w=nw;F.h=nh;F.whole=false;
+  if(pos){F.x=pos.x;F.y=pos.y}else{F.x=Math.round(cx-nw/2);F.y=Math.round(cy-nh/2)}
+  buildFloatCanvas();syncSelBar();requestRender()}
+function scaleBy(k){const F=st.float;if(!F||!F.src)return;const S=F.src,a=S.w/S.h;let nw=Math.max(1,Math.round(F.w*k));if(nw===F.w)nw+=k>1?1:-1;nw=Math.max(1,nw);scaleFloatTo(nw,Math.max(1,Math.round(nw/a)))}
+function scaleFit(){const F=st.float;if(!F||!F.src)return;const S=F.src;let k=Math.min(doc.w/S.w,doc.h/S.h);if(k>=1&&S.rs==='sharp')k=Math.floor(k);
+  const nw=Math.max(1,Math.round(S.w*k)),nh=Math.max(1,Math.round(S.h*k));scaleFloatTo(nw,nh,false,{x:Math.round((doc.w-nw)/2),y:Math.round((doc.h-nh)/2)});showFloat()}
+/* если кусок «в руке» не виден целиком, отдаляем холст так, чтобы были видны и он, и холст */
+function showFloat(){const F=st.float;if(!F)return;const r=stage.getBoundingClientRect(),x0=Math.min(0,F.x),y0=Math.min(0,F.y),x1=Math.max(doc.w,F.x+F.w),y1=Math.max(doc.h,F.y+F.h);
+  const z=st.zoom,vis=st.panX+x0*z>=0&&st.panY+y0*z>=0&&st.panX+x1*z<=r.width&&st.panY+y1*z<=r.height;if(vis)return;
+  let nz=Math.min((r.width-80)/(x1-x0),(r.height-140)/(y1-y0));nz=nz>=1?Math.floor(nz):(nz>=.5?.5:.25);
+  st.zoom=nz;st.panX=Math.round((r.width-(x1-x0)*nz)/2-x0*nz);st.panY=Math.round((r.height-(y1-y0)*nz)/2-y0*nz+30);updateZoomLabel();requestRender()}
+function handleAt(p){const F=st.float;if(!F||!F.src||st.playing)return null;const z=st.zoom,X0=st.panX+F.x*z,Y0=st.panY+F.y*z,X1=X0+F.w*z,Y1=Y0+F.h*z,big=Math.min(X1-X0,Y1-Y0)>=60;
+  const C=[[X0,Y0,-1,-1],[X1,Y0,1,-1],[X0,Y1,-1,1],[X1,Y1,1,1]];
+  for(const[hx,hy,dx,dy]of C)if(Math.hypot(p.x-hx,p.y-hy)<=22){const inside=p.x>X0&&p.x<X1&&p.y>Y0&&p.y<Y1;if(big||!inside)return{dx,dy}}
+  return null}
+function startScale(h,id,ptype){const F=st.float;if(st.playing)stopPlay();
+  stroke={tool:'floatscale',pointerId:id,ptype,dx:h.dx,dy:h.dy,ax:h.dx>0?F.x:F.x+F.w,ay:h.dy>0?F.y:F.y+F.h,raf:0,pend:null};requestRender()}
+function scaleDrag(s,ux,uy){const F=st.float;if(!F)return;const S=F.src,w=Math.max(.5,(ux-s.ax)*s.dx),h=Math.max(.5,(uy-s.ay)*s.dy),k=Math.max(w/S.w,h/S.h);
+  const nw=Math.max(1,Math.round(S.w*k)),nh=Math.max(1,Math.round(S.h*k));
+  s.pend={nw,nh,x:s.dx>0?s.ax:s.ax-nw,y:s.dy>0?s.ay:s.ay-nh};
+  if(!s.raf)s.raf=requestAnimationFrame(()=>{s.raf=0;const q=s.pend;if(q&&st.float)scaleFloatTo(q.nw,q.nh,true,{x:q.x,y:q.y})})}
+function finishScale(s){if(s.raf){cancelAnimationFrame(s.raf);s.raf=0}const F=st.float;if(!F)return;const q=s.pend;
+  if(q)scaleFloatTo(q.nw,q.nh,false,{x:q.x,y:q.y});else scaleFloatTo(F.w,F.h,false,{x:F.x,y:F.y});renderOptions()}
+function drawHandles(x0,y0,z){const F=st.float;if(!F||!F.src||st.playing)return;
+  const X0=x0+F.x*z,Y0=y0+F.y*z,X1=X0+F.w*z,Y1=Y0+F.h*z;vctx.save();
+  vctx.setLineDash([6,4]);vctx.lineWidth=1;vctx.strokeStyle=accent();vctx.strokeRect(Math.round(X0)+.5,Math.round(Y0)+.5,Math.max(1,Math.round(X1-X0)-1),Math.max(1,Math.round(Y1-Y0)-1));vctx.setLineDash([]);
+  for(const[hx,hy]of[[X0,Y0],[X1,Y0],[X0,Y1],[X1,Y1]]){vctx.fillStyle='#fff';vctx.fillRect(Math.round(hx)-7,Math.round(hy)-7,14,14);vctx.lineWidth=2;vctx.strokeStyle='#1D1F2A';vctx.strokeRect(Math.round(hx)-7,Math.round(hy)-7,14,14)}
+  vctx.restore()}
+$('#scFit').onclick=()=>{if(inHand())scaleFit()};
+$('#sc11').onclick=()=>{if(!inHand())return;const F=st.float;if(F&&F.src){scaleFloatTo(F.src.w,F.src.h);showFloat()}};
+$('#scMinus').onclick=()=>{if(inHand())scaleBy(.8)};$('#scPlus').onclick=()=>{if(inHand()){scaleBy(1.25);showFloat()}};
+$('#scSize').onclick=()=>{if(!inHand())return;const F=st.float;if(!F||!F.src)return;const a=F.src.w/F.src.h;
+  askText('Ширина в пикселях (высота подстроится)',String(F.w),v=>{const w=Math.round(+String(v).replace(',','.'));if(!(w>=1)){toast('Нужно число, например 64');return}scaleFloatTo(w,Math.max(1,Math.round(w/a)));showFloat()})};
+function syncSelBar(){const b=$('#selBar');if(!b)return;const on=!!(st.sel||st.float);if(b.hidden===on)b.hidden=!on;const d=$('#selDone');if(d&&d.hidden===!!st.float)d.hidden=!st.float;
+  const sc=$('#selScale'),F=st.float,sh=!!((F&&F.src)||(!F&&st.sel));if(sc&&sc.hidden===sh)sc.hidden=!sh;
+  if(sh){let t;if(F)t=F.w+'×'+F.h;else{if(selSizeVer!==selVer){selSizeVer=selVer;const r=selBounds(st.sel,doc.w,doc.h);selSizeTxt=r?r.w+'×'+r.h:''}t=selSizeTxt}const e=$('#scSize');if(e.textContent!==t)e.textContent=t}}
+let selSizeVer=-1,selSizeTxt='';
+const inHand=()=>!!st.float||ensureFloat();
 function selChanged(){selVer++;renderOptions();syncSelBar();requestRender()}
 function setSelection(m,mode){
   mode=mode||'new';let r;
@@ -890,7 +946,8 @@ function setSelection(m,mode){
   if(r&&!r.some(v=>v))r=null;st.sel=r;selChanged();
 }
 function buildFloatCanvas(){const F=st.float;F.canvas=document.createElement('canvas');F.canvas.width=F.w;F.canvas.height=F.h;F.canvas.getContext('2d').putImageData(new ImageData(F.data,F.w,F.h),0,0)}
-function newFloat(o){st.float={l:st.layer,f:st.frame,before:cel().slice(),sb:cel().sp||null,...o};buildFloatCanvas();st.sel=null;selChanged()}
+function srcOf(F){return{d:F.data.slice(),m:F.mask.slice(),w:F.w,h:F.h,rs:'sharp',hard:false,centers:null}}
+function newFloat(o){st.float={l:st.layer,f:st.frame,before:cel().slice(),sb:cel().sp||null,...o};if(!st.float.src)st.float.src=srcOf(st.float);buildFloatCanvas();st.sel=null;selChanged()}
 function liftSelection(){
   if(st.float)return true;if(!st.sel)return false;
   if(!doc.layers[st.layer].visible){toast('Слой скрыт. Включи его, чтобы двигать');return false}
@@ -898,7 +955,7 @@ function liftSelection(){
   /* выделено всё, что нарисовано на слое: тогда с ним едет и то, что лежит за краем холста */
   const g=extractSel(d,st.sel,!!sb&&coversLayer(d,st.sel),true);if(!g)return false;
   if(g.carried)d.sp=null;
-  st.float={l:st.layer,f:st.frame,x:g.R.x,y:g.R.y,w:g.R.w,h:g.R.h,data:g.data,mask:g.mask,before,sb,whole};buildFloatCanvas();st.sel=null;selChanged();return true;
+  st.float={l:st.layer,f:st.frame,x:g.R.x,y:g.R.y,w:g.R.w,h:g.R.h,data:g.data,mask:g.mask,before,sb,whole};st.float.src=srcOf(st.float);buildFloatCanvas();st.sel=null;selChanged();return true;
 }
 /* впечатывает «плавающий» фрагмент в слой d: что попало на холст — в пиксели, что за краем — в спилл слоя */
 function foldFloat(d,F,sp0){
@@ -926,6 +983,9 @@ function ensureFloat(){if(st.float)return true;if(!st.sel){st.sel=new Uint8Array
 function transformFloat(fn){if(!ensureFloat())return;const F=st.float,nd=new Uint8ClampedArray(F.data.length),nm=new Uint8Array(F.mask.length);const nw=fn.swap?F.h:F.w,nh=fn.swap?F.w:F.h,ox=F.x,oy=F.y,ow=F.w,oh=F.h;
   for(let y=0;y<F.h;y++)for(let x=0;x<F.w;x++){const s=y*F.w+x,[tx,ty]=fn(x,y,F.w,F.h),t=ty*nw+tx;nm[t]=F.mask[s];nd.set(F.data.subarray(s*4,s*4+4),t*4)}
   F.w=nw;F.h=nh;F.data=nd;F.mask=nm;
+  if(F.src){const S=F.src,sw=fn.swap?S.h:S.w,sh=fn.swap?S.w:S.h,sd=new Uint8ClampedArray(S.d.length),sm=S.m?new Uint8Array(S.m.length):null;
+    for(let y=0;y<S.h;y++)for(let x=0;x<S.w;x++){const a=y*S.w+x,[tx,ty]=fn(x,y,S.w,S.h),b=ty*sw+tx;if(sm)sm[b]=S.m[a];sd.set(S.d.subarray(a*4,a*4+4),b*4)}
+    F.src={...S,d:sd,m:sm,w:sw,h:sh}}
   if(F.whole){ /* весь слой: отражаем и поворачиваем вокруг центра холста, вместе с тем, что за краем */
     if(fn.kind==='h')F.x=doc.w-ox-ow;else if(fn.kind==='v')F.y=doc.h-oy-oh;
     else if(fn.swap){F.x=Math.floor((doc.w+doc.h-2)/2)-oy-oh+1;F.y=Math.floor((doc.h-doc.w)/2)+ox}
@@ -1031,6 +1091,7 @@ function shapeUpdate(x,y){
 function sameArr(a,b){if(a.length!==b.length)return false;for(let i=0;i<a.length;i++)if(a[i]!==b[i])return false;return true}
 function endStroke(){
   const s=stroke;if(!s)return;stroke=null;if(s.loupe)hideLoupe();
+  if(s.tool==='floatscale'){finishScale(s);return}
   if(s.tool==='floatmove'){if(!s.moved&&SELT.includes(st.tool)){commitFloat();st.sel=null;selChanged()}else{renderOptions();requestRender()}return}
   if(s.tool==='select'){const[sx,sy]=s.start,[ex,ey]=s.last;if(sx===ex&&sy===ey&&s.mode==='new'){st.sel=null;selChanged();return}setSelection(rectMask(sx,sy,ex,ey),s.mode);return}
   if(s.tool==='lasso'){if(s.pts.length<3){if(s.mode==='new'){st.sel=null;selChanged()}else requestRender();return}
@@ -1045,6 +1106,7 @@ function endStroke(){
 }
 function cancelStroke(){
   const s=stroke;if(!s)return;stroke=null;if(s.loupe)hideLoupe();P=null;
+  if(s.tool==='floatscale'){finishScale(s);return}
   if(s.tool==='floatmove'){if(st.float){st.float.x=s.fx;st.float.y=s.fy}requestRender();return}
   if(s.before){const c=cel(s.l,s.f);c.set(s.before);if(s.tool==='move')c.sp=s.sb||null}changed(true);
 }
@@ -1351,11 +1413,13 @@ stage.addEventListener('pointerdown',e=>{
       gesture={d0:Math.hypot(a.x-b.x,a.y-b.y)||1,m0:{x:(a.x+b.x)/2,y:(a.y+b.y)/2},z0:st.zoom,px0:st.panX,py0:st.panY,last:null};return;
     }
     if(touchLock||stroke)return;
+    {const h=handleAt(p);if(h){startScale(h,e.pointerId,'touch');return}}
     if(touchPans()){panning={id:e.pointerId,x:p.x,y:p.y};armHold(e.pointerId,p);return}
     beginStroke(...toDoc(p),e.pointerId,'touch',{});armHold(e.pointerId,p);return;
   }
   if(e.button===1||spaceDown){panning={id:e.pointerId,x:p.x,y:p.y};return}
   if(stroke)return;
+  {const h=handleAt(p);if(h){startScale(h,e.pointerId,e.pointerType);return}}
   beginStroke(...toDoc(p),e.pointerId,e.pointerType,{secondary:e.button===2,pick:e.altKey&&!SELT.includes(st.tool),mode:modeFrom(e)});
 });
 stage.addEventListener('pointermove',e=>{
@@ -1364,6 +1428,7 @@ stage.addEventListener('pointermove',e=>{
   if(!rec)return;rec.x=p.x;rec.y=p.y;
   if(hold&&hold.id===e.pointerId&&Math.hypot(p.x-hold.x,p.y-hold.y)>8)cancelHold();
   if(stroke&&stroke.loupe&&stroke.pointerId===e.pointerId){pickScreen(p.x,p.y);return}
+  if(stroke&&stroke.tool==='floatscale'&&stroke.pointerId===e.pointerId){scaleDrag(stroke,(p.x-st.panX)/st.zoom,(p.y-st.panY)/st.zoom);return}
   if(rec.type==='touch'&&tap&&Math.hypot(p.x-rec.sx,p.y-rec.sy)>10)tap.moved=true;
   if(gesture){const ts=touchList();if(ts.length>=2){const[a,b]=ts,d=Math.hypot(a.x-b.x,a.y-b.y)||1,m={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
       const z=clamp(gesture.z0*d/gesture.d0,.25,128);st.zoom=z;st.panX=m.x-(gesture.m0.x-gesture.px0)/gesture.z0*z;st.panY=m.y-(gesture.m0.y-gesture.py0)/gesture.z0*z;gesture.last=m;updateZoomLabel();requestRender()}return}
@@ -1621,11 +1686,13 @@ function insBuild(S,o){
     if(o.size==='fit'){const sc=Math.min(doc.w/bw,doc.h/bh);if(sc>=1){const f=Math.max(1,Math.floor(sc));tw=bw*f;th=bh*f}else{tw=Math.max(1,Math.round(bw*sc));th=Math.max(1,Math.round(bh*sc))}}
     else{tw=clamp(Math.round(o.w)||1,1,DEC_MAX);th=Math.max(1,Math.round(tw*bh/bw))}
     const base=k>1?resampleNearest(S.d,S.w,S.h,bw,bh):S.d;
-    data=(tw>=bw||o.rs==='sharp')?resampleNearest(base,bw,bh,tw,th):resampleArea(base,bw,bh,tw,th)}
+    data=(tw>=bw||o.rs==='sharp')?resampleNearest(base,bw,bh,tw,th):resampleArea(base,bw,bh,tw,th);var srcBase=base}
   if(o.hard||o.cols!=='keep')for(let i=3;i<data.length;i+=4)data[i]=data[i]>=128?255:0;
-  if(o.cols==='pal')mapToColors(data,palette.map(rgbOf));
-  else if(o.cols==='auto')mapToColors(data,kmeansColors(data,o.n));
-  return{w:tw,h:th,data}}
+  let centers=null;
+  if(o.cols==='pal'){centers=palette.map(rgbOf).map(c=>c.slice(0,3));mapToColors(data,centers)}
+  else if(o.cols==='auto'){centers=kmeansColors(data,o.n);mapToColors(data,centers)}
+  const hard=!!(o.hard||o.cols!=='keep'),asis=o.size==='asis';
+  return{w:tw,h:th,data,src:asis?{d:data.slice(),m:null,w:tw,h:th,rs:o.rs,hard,centers}:{d:srcBase,m:null,w:bw,h:bh,rs:o.rs,hard,centers}}}
 async function clipboardImage(){
   try{if(!navigator.clipboard||!navigator.clipboard.read)return null;const items=await navigator.clipboard.read();
     for(const it of items){const t=(it.types||[]).find(x=>/^image\//.test(x));if(t)return await it.getType(t)}}catch{}
@@ -1637,10 +1704,10 @@ function placeImage(R,o,name){
   if(o.dest==='new'){const nm=(String(name||'').replace(/\.[^.]+$/,'').trim()||'Картинка').slice(0,40);
     docOp(()=>{const i=st.layer+1;doc.layers.splice(i,0,{...newLayer(nm),opacity:o.trace?.4:1});doc.cels.splice(i,0,doc.frames.map(blankCel));st.layer=i})}
   else{commitFloat();if(stopIfHidden())return}
-  newFloat({x:Math.round((doc.w-R.w)/2),y:Math.round((doc.h-R.h)/2),w:R.w,h:R.h,data:R.data,mask});
+  newFloat({x:Math.round((doc.w-R.w)/2),y:Math.round((doc.h-R.h)/2),w:R.w,h:R.h,data:R.data,mask,src:R.src});showFloat();
   if(!KEEP_FLOAT.includes(st.tool)||st.tool==='picker')setTool('move');
   renderOptions();requestRender();
-  toast(R.w>doc.w||R.h>doc.h?'Картинка в руке. Она больше холста: подвинь нужную часть и нажми «Готово»':'Картинка в руке: передвинь её и нажми «Готово»')}
+  toast('Картинка в руке: двигай её, тяни за уголки, чтобы изменить размер, или нажми «По холсту» сверху. Потом «Готово»')}
 function insertDialog(blob,name){
   if(st.playing)stopPlay();commitFloat();
   const o={...st.ins,size:'fit',rs:'soft',w:0};let S=null,busy=false,R=null;
@@ -2283,7 +2350,7 @@ function showHelp(){showModal(`<h2>Жесты и клавиши</h2><dl class="k
   <dt>Пиксель-чек</dt><dd>Кнопка с лупой внизу: подсвечивает одиночные пиксели, лишние углы, неровные ступеньки, похожие цвета; есть просмотр в Ч/Б и силуэтом</dd>
   <dt>Движение</dt><dd>Кнопка «Движение…» внизу: слой сам едет кадр за кадром, например облака. Видно при проигрывании и в GIF</dd>
   <dt>Таймлапс</dt><dd>Файл → «Таймлапс этой работы»: ролик о том, как рисовалась работа, в GIF или видео</dd>
-  <dt>Картинка на холст</dt><dd>Правка → «Вставить картинку»: из «Фото», файла или буфера. Новым слоем или на текущий, по размеру холста или как есть, можно сразу сделать пиксельной. ⌘V с клавиатурой тоже вставляет скопированную картинку</dd>
+  <dt>Картинка на холст</dt><dd>Правка → «Вставить картинку»: из «Фото», файла или буфера. Новым слоем или на текущий, по размеру холста или как есть, можно сразу сделать пиксельной. Пока картинка «в руке», её размер меняется уголками или кнопками сверху: «По холсту», «1:1», «−», «+»; это работает и для любого выделения. ⌘V с клавиатурой тоже вставляет скопированную картинку</dd>
   <dt>Референс</dt><dd>Тяни за верхнюю полоску, размер меняй уголком. Внутри картинку двигают одним пальцем и масштабируют двумя. Удержание на ней берёт цвет</dd>
   <dt>B E G I L U O</dt><dd>Карандаш, ластик, заливка, пипетка, линия, прямоугольник, эллипс</dd>
   <dt>M Q W V T</dt><dd>Выделение, лассо, волшебная палочка, перемещение, текст</dd>
@@ -2477,7 +2544,7 @@ function exportDialog(preset){
 $('#exportBtn').onclick=()=>exportDialog();
 
 /* ---------- storage: IndexedDB, falls back to Claude storage ---------- */
-const VERSION='3.4';
+const VERSION='3.5';
 const IDB=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{try{const r=indexedDB.open('pixelnya',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}}));
   const run=async(mode,fn)=>{const db=await open();return new Promise((res,rej)=>{const t=db.transaction('kv',mode),q=fn(t.objectStore('kv'));t.oncomplete=()=>res(q.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})};
   return{get:k=>run('readonly',s=>s.get(k)),set:(k,v)=>run('readwrite',s=>s.put(v,k)),del:k=>run('readwrite',s=>s.delete(k))}})();
